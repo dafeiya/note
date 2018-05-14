@@ -1,0 +1,350 @@
+maven实战记
+=========================================================
+mvn dependency:resolve	打印当前maven项目的所有依赖
+
+mvn dependency:analyze	该目标分 析这个项目,查看是否有直接依赖,或者一些引用了但不是直接声明的依赖
+
+mvn dependency:tree		以树状结构打印初maven项目的所有依赖. \-表示该依赖未被使用, +-表示依赖被使用
+
+mvn test -Dmaven.test.failure.ignore=true	忽略失败的测试
+
+mvn install -Dmaven.test.skip=true		跳过测试阶段
+
+mvn help:effective-pom	查看有效的pom文件.该文档的内容是超级POM 和各个父pom以及当前pom中所有POM 内容的合并。
+
+mvn clean install -P<profileId>
+
+mvn help:active-profiles	列出活动的profile
+=========================================================
+javaEE项目的打包通常有三种方式
+
+Jar、war、EAR、在文件结构上，三者并没有什么不同，它们都采用zip或jar档案文件压缩格式。但是它们的使用目的有所区别
+1.jar包：
+	通常用于第二方或第三方依赖jar,包含Java类的普通库、资源（resources）、辅助文件（auxiliary files）等
+2.war包：
+	用于在servlet容器(如tomcat，jetty容器)中运行的包
+	war包要求必须有WEB-INF/web.xml文件,否则无法打成war包
+	Maven 认 为 web 应用程序的文档根目录为 src/main/webapp
+3.ear包:
+	包括整个项目，内含多个ejb module（jar文件）和web module（war文件）
+
+--------------------------------------------------------
+scope标签
+
+1.compile：
+	默认值 他表示被依赖项目需要参与当前项目的编译，还有后续的测试，运行周期也参与其中，是一个比较强的依赖。打包的时候通常需要包含进去
+
+2.test：
+	依赖项目仅仅参与测试相关的工作，包括测试代码的编译和执行，不会被打包，例如：junit
+
+3.runtime：
+	表示被依赖项目无需参与项目的编译，不过后期的测试和运行周期需要其参与。
+	与compile相比，跳过了编译而已。例如JDBC
+
+4.provided：
+	打包的时候可以不用包进去，别的设施会提供。事实上该依赖理论上可以参与编译，测试，运行等周期。
+	相当于compile，但是打包阶段做了exclude操作
+
+5.system：
+	从参与度来说，和provided相同，不推荐使用
+	不过被依赖项不会从maven仓库下载，而是从本地文件系统拿。但是你必须显式的提供一个对于本地系统 中 JAR 文件的路径。这么做是为了允许基于本地对象编译,而这些对象是系统 类库的一部分。这样的构件应该是一直可用的,Maven 也不会在仓库中去寻找 它。如果你将一个依赖范围设置成系统范围,你必须同时提供一个 systemPath 元素。注意该范围是不推荐使用的(你应该一直尽量去从公共或定制的 Maven 仓库中引用依赖)
+
+----------------------------------------------------------
+build 配置和 dependencies 都会被所有的子模块继承。
+
+	随着项目的成熟,新的依赖难免被引入,你可能发现之前在一个地方使用的一个依 赖现在在 10 个地方使用了,需要将它上移。使用和未使用的依赖列表不停的在变化, 它们也能够使用 Maven Dependency 插件轻松的清理。
+
+dependencyManager
+
+	dependencyManagement 元素能让 你在子项目中引用一个依赖而不用显式的列出版本号。 Maven 会沿着父子层次向上走, 直到找到一个拥有 dependencyManagement 元素的项目,然后它就会使用在这个 dependencyManagement 元素中指定的版本号。
+	在这些依赖配置被上移之后,我们需要为每个子模块POM 移除这些依赖的版本,否则它们会 覆盖定义在父项目中的 dependencyManagement., dependencyManagement 不适用于插件依赖
+为了降低依赖重复而完成的两项优化:
+	1.上移共同的依赖至 dependencyManagement
+	如果多于一个项目依赖于一个特定的依赖,你可以在 dependencyManagement 中列出这个依赖。父 POM 包含一个版本和一组排除配置,所有的子 POM 需要 使用 groupId 和 artifactId 引用这个依赖。如果依赖已经在 dependencyManagement 中列出,子项目可以忽略版本和排除配置。
+
+	2.为兄弟项目使用内置的项目 version 和 groupId
+	使用 {project.version} 和 ${project.groupId} 来引用兄弟项目。兄弟项目 基本上一直共享同样的 groupId,也基本上一直共享同样的发布版本。使用 ${project.version} 可以帮你避免前面提到的兄弟版本不一致问题。	
+
+---------------------------------------------------------
+pluginManagement
+	
+
+======================================================== ========================================================
+
+测试范围依赖是一个只在测试编译和测试运行时在 classpath 中有效的依赖。如果你 的项目是以 war 或者 ear 形式打包的,测试范围依赖就不会被包含在项目的打包输出中
+
+	Maven 的核心对你项目构建中特定的任务几乎毫无所知。就它本身来说,Maven 不知道如何编译你的代码,它甚至不知道如何制作一个 JAR 文件,它把所有这 些任务代理给了 Maven 插件,像 Compiler 插件和 Jar 插件,它们在需要的时候 被下载下来并且定时的从 Maven 中央仓库更新。当你下载 Maven 的时候,你得 到的是一个包含了基本躯壳的 Maven 核心,它知道如何解析命令行,管理 classpath,解析 POM 文件,在需要的时候下载 Maven 插件。
+	mvn package。命令行并没有指定一个插件 目标,而是指定了一个 Maven 生命周期阶段。一个阶段是在被 Maven 称为“构建 生命周期”中的一个步骤。生命周期是包含在一个项目构建中的一系列有序的阶 段。Maven 可以支持许多不同的生命周期,但是最常用的生命周期是默认的 Maven 生命周期,这个生命周期中一开始的一个阶段是验证项目的基本完整性, 最后的一个阶段是把一个项目发布成产品。
+	一个生命周期是一些阶段的序列 插件目标可以附着在生命周期阶段上。随着 Maven 沿着生命周期的阶段移动, 它会执行附着在特定阶段上的目标。每个阶段可能绑定了零个或者多个目标。运行 mvn package 之后的输出,会注意到那些被运行的各种目标。 当这个简单例子到达 package 阶段的时候,它运行了 Jar 插件的 jar 目标。
+
+一个生命周期是一些阶段的序列,一个目标绑定到一个阶段,被绑定的目标随着它们阶段的运行而运行
+
+	POM 为项目命名,提供了项目的一组唯一标识符(坐标), 并且通过依赖 (dependencies) ,父 (parents) 和先决条件 (prerequisite) 来定义和 其它项目的关系。POM 也可以自定义插件行为。
+maven项目的坐标:groupId, artifactId, version 和 packaging
+	Maven 坐 标 通 常 用 冒 号 来 作 为 分 隔 符 来 书 写 , 像 这 样 的 格 式 : groupId:artifactId:packaging:version。在上面的 pom.xml 中,它的坐标可以 表示为 mavenbook:my-app:jar:1.0-SNAPSHOT.这个符号也适用于项目依赖
+
+======================MOGO==================================
+ Mojo 是一个简单的 Java 类
+继承AbstractMOJO抽象类，在类上添加注解@Mojo(name = "myPlugin")，重写execute()方法。
+使用该插件时在pom中进行配置
+ <build>
+        <plugins>
+            <plugin>
+                <groupId>com.plugin.demo</groupId>
+                <artifactId>lm_plugin</artifactId>
+                <version>1.0-SNAPSHOT</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+					<testFailureIgnore>true</testFailureIgnore>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					<archive>
+						<manifest>
+							<mainClass>org.sonatype.mavenbook.weather.Main</mainClass>
+							<addClasspath>true</addClasspath>
+						</manifest>
+					</archive>
+					<components>
+						<component>
+							<name>hbm2ddl</name>
+							<implementation>annotationconfiguration</implementation>
+						</component>
+					</components>
+				</configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>myPlugin</goal>
+                        </goals>
+                        <phase>clean</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+
+
+
+一个目标绑定到一个阶段
+
+===================================项目对象模型========================================================
+1.超级 POM:
+	所有的 Maven 项目 的 POM 都扩展自超级 POM。超级 POM 定义了一组被所有项目共享的默认设置。它是 Maven 安装的一部分,可以在 ${M2_HOME}/lib 中的 maven-2.0.9-uber.jar 文件中 找到。	
+
+2.属性引用
+	一个 POM 可以通过${...}符号来包含对属性的引用
+	Maven 提供了三个隐式的变量, 可以用来访问环境变量,POM 信息,和 Maven Settings:
+	1.env
+	env 变量 暴露了你操作系统或者 shell 的环境变量。例如,在Maven POM中一个对${env.PATH} 的引用将会被${PATH}环境变量替换(或者 Windows中的 %PATH% )。
+	2.project
+	project 变量暴露了 POM。你可以使用点标记(.)的路径来引用 POM 元素的 值。例如,在本节中我们使用过 groupId 和 artifactId 来设置构建配置中的 finalName 元素。这个属性引用的语法是: ${project.groupId}-${project.artifactId} 。
+	3.settings
+	settings 变量暴露了 Maven settings 信息。可以使用点标记(.)的路径来 引用 settings.xml 文件中元素的值。例如, ${settings.offline} 会引用 ~/.m2/settings.xml 文件中 offline 元素的值。
+
+3.传递性依赖
+	传递性依赖就是对于一个依赖的依赖
+	
+================================生命周期===========================================
+			默认生命周期 (default)
+它是一个软件应用程序构建过程的 总体模型。第一个阶段是 validate ,最后一个阶段是 deploy 。这些默认 Maven 生命周期的阶段如下所示
+	
+生命周期阶段					 描述
+
+validate				    验证项目是否正确,以及所有为了完整构建必要的信息是否可用
+generate-sources			生成所有需要包含在编译过程中的源代码
+process-sources				处理源代码,比如过滤一些值
+generate-resources			生成所有需要包含在打包过程中的资源文件
+process-resources			复制并处理资源文件至目标目录,准备打包
+compile						编译项目的源代码
+process-classes				后处理编译生成的文件,例如对 Java 类进行字节码增强(bytecode enhancement)
+generate-test-sources		生成所有包含在测试编译过程中的测试源码
+process-test-sources		处理测试源码,比如过滤一些值
+generate-test-resources		生成测试需要的资源文件
+process-test-resources		复制并处理测试资源文件至测试目标目录
+test-compile				编译测试源码至测试目标目录
+test						使用合适的单元测试框架运行测试。这些测试应该不需要代码被打包或发布
+prepare-package				在真正的打包之前,执行一些准备打包必要的操作。这通常会产生一个包的展开的处理过的版本(将会在 Maven 2.1+中实现)
+package						将编译好的代码打包成可分发的格式,如 JAR,WAR,或者 EAR
+pre-integration-test		执行一些在集成测试运行之前需要的动作。如建立集成测试需要的环境
+integration-test			如果有必要的话,处理包并发布至集成测试可以运行的环境
+post-integration-test		执行一些在集成测试运行之后需要的动作。如清理集成测试环境。
+verify						执行所有检查,验证包是有效的,符合质量规范
+install						安装包至本地仓库,以备本地的其它项目作为依赖使用
+deploy						复制最终的包至远程仓库,共享给其它开发人员和项目(通常和一次 正式的发布相关)
+
+站点生命周期 (site)
+Maven 不仅仅能从一个项目构建软件构件,它还能为一个或者一组项目生成项目文档和报告。项目文档和站点生成有一个专有的生命周期,它包含了四个阶段:
+• pre-site
+• site
+• post-site
+• site-deploy
+
+-----------------------------重要阶段说明---------------------------------------
+
+process-resources 
+阶段处理资源并将资源复制到输出目录
+
+	如果你没有自己自定义 超级 POM 中的默认目录位置,Maven 就会将 ${basedir}/src/main/resources中的文件复制到 ${basedir}/target/classes,或者是由 ${project.build.outputDirectory} 定义的目录。
+	资源目录并非一定要在 src/main/resources 。这只是 定义在超级 POM 中的默认值。你可以将资源分离至 src/main 目录下的独立的目录中。
+ 
+<build>
+...
+	<resources>
+		<resource>
+			<directory>src/main/resources</directory>
+		</resource>
+		<resource>
+			<directory>src/main/xml</directory>
+		</resource>
+		<resource>
+			<directory>src/main/images</directory>
+		</resource>
+	</resources>
+...
+</build>
+
+添加文件过滤器
+<resource>
+	<filtering>true</filtering>
+	<directory>${basedir}/src/main/command</directory>
+	<includes>
+		<include>run.bat</include>
+		<include>run.sh</include>
+	</includes>
+	<targetPath>${basedir}</targetPath>
+</resource>
+
+-----------------------------------------------------------
+Compile
+编译所有的源码并复制到构建输出目录
+
+默认情况下compile:compile 将会编译 src/main/java 中的所有内容至 target/classes。Compiler会插件调用 javac.使用的 source 设置为 1.3, 默认 target 设置为 1.1。换句话说,Compiler 插件会假设你所有的 Java 源代码遵循 Java 1.3,目标为 Java 1.1 JVM。如果你想要更改这些设置,你需要在 POM 中为 Compiler 插件提供 source 和 target 配置
+
+为Compiler插件设置source和target 版本
+<build>
+...
+	<plugins>
+		<plugin>
+			<artifactId>maven-compiler-plugin</artifactId>
+			<configuration>
+			<source>1.8</source>
+			<target>1.8</target>
+			</configuration>
+		</plugin>
+	</plugins>
+...
+</build>
+
+覆盖默认的源码和输出目录
+<build>
+...
+	<sourceDirectory>src/java</sourceDirectory>
+	<outputDirectory>classes</outputDirectory>
+...
+</build>
+
+----------------------------------------------------------
+Test
+
+	大部分生命周期绑定 Surefire 插件的 test 目标至 test 阶段。 Surefire 插件是 Maven 的单元测试插件,Surefire 默认的行为是寻找测试源码目录下所有以*Test 结尾的类, 以 JUnit 测试的形式运行它们。
+
+-------------------------------------------------------
+Install
+install:install 目标只不过是将项目的主要构件安装到本地仓库
+如果这个项目的打包类型是 POM,那么该目标就仅仅复制 POM 到本地 仓库。
+
+----------------------------------------------------------
+Deploy
+Deploy 插件的 deploy 目标通常绑定到 deploy 生命周期阶段。该阶段用来将一个构 件部署到远程 Maven 仓库.
+	部署设置通常可以在用户单独的 ~/.m2/settings.xml 中找到
+
+======================================Profile=================================================
+Profile用处:
+
+	Profile 能让你为一个特殊的环境自定义一个特殊的构建;profile 使得不同环境间构建的可移植性成为可能。
+	Maven 中的 profile 是一组可选的配置,可以用来设置或者覆盖配置默认值。
+
+构建可移植性:
+	指将一个项目在不同的环境中构建的难易度。一个不用做任何自定义配置或者属性文件配置就能工作的构建,比一个需要很多配置才能工作的构建,具有更高的可移植性。
+
+1,环境可移植性:
+	如果一个构建有一种机制,能针对不同的环境有特定的行为和配置,那么我们就说该构建具有环境可移植性。
+2,组织(内部)可移植性:
+	项目可能需要访问一些内部资源如源码控制系统或者内 部维护的 Maven仓库。
+3.广泛(全局)可移植性:
+	任何人都可以下载具有广泛可移植性项目的源码,不用为特定的环境自定义构建就能进行编译,安装。这是最高级别的可移植性
+
+-----------------------------------------------------------
+profile配置:
+
+	由于 profile 覆盖了 pom.xml 中的 默认设置, profiles 通常是 pom.xml 中的最后一个元素
+	每个 profile 必须要有一个 id 元素。这个 id 元素包含的名字将在命令行调用 profile 时被用到。我们可以通过传给 Maven 一个-P<profile_id>参数来调用 profile。
+	一个 Profile 可以覆盖项目构件的最终名称,项目依赖,插件配置以影响构建行为。 Profile 还可以覆盖分发配置;例如,如果你通过一个 staging profile 发布一个构件到 staging 服务器上,你就可以创建一个 profile 然后在里面定义 distributionManagement 元素
+
+Profile 中允许出现的元素
+
+<profiles>
+	<profile>
+		<id>...</id>
+		<activation>...</activation>
+		<build>
+			<defaultGoal>...</defaultGoal>
+			<finalName>...</finalName>
+			<resources>...</resources>
+			<testResources>...</testResources>
+			<plugins>...</plugins>
+		</build>
+		<reporting>...</reporting>
+		<modules>...</modules>
+		<dependencies>...</dependencies>
+		<dependencyManagement>...</dependencyManagement>
+		<distributionManagement>...</distributionManagement>
+		<repositories>...</repositories>
+		<pluginRepositories>...</pluginRepositories>
+		<properties>...</properties>
+	</profile>
+</profiles>
+
+激活配置:
+
+	activation 元素列出了所有激活 profile 需要的条件。该例中,我们的配置为,当 Java 版本以“1.6”开头 的时候 profile 会被激活。这包括“1.6.0_03”,“1.6.0_02”以及所有其它以“1.6”开头的字符串。激活参数不局限于 Java 版本
+	激活配置元素下可以包含一个或者多个选择器:包含 JDK 版本,操作系统参数,文件,以及属性。当所有标准都被满足的时候一个 profile 才会被激活。
+
+<profile>
+	<id>dev</id>
+	<activation>
+		<activeByDefault>false</activeByDefault>
+		<jdk>1.5</jdk>
+		<os>
+			<name>Windows XP</name>
+			<family>Windows</family>
+			<arch>x86</arch>
+			<version>5.1.2600</version>
+		</os>
+		<property>
+			<name>mavenVersion</name>
+			<value>2.0.5</value>
+		</property>
+		<file>
+			<exists>file2.properties</exists>
+			<missing>file1.properties</missing>
+		</file>
+	</activation>
+...
+</profile>
+
+说明:
+	activeByDefault 元素控制一个 profile 是否默认被激活。
+	property 元素告诉 Maven,当 mavenVersion 属性的值被设置成 2.0.5 的时候才激活 profile。
+	file 元素告诉我们只有当某些文件存在(或者不存在)的时候才激活 profile。该例中的 dev profile 只有 在项目基础目录中存在 file2.properties 文件,并且不存在 file1.properties 文件的时候才被激活。
+	
+除了在pom中配置profile,还可以讲profile配置在settings,xml文件中:
+	而 settings profile 可以应用到所有你使用 Maven 构建的项目。你 可以在两个地方定义 settings profile:定义在 ~/.m2/settings.xml 中的用户特定 settings profile,或者定义在 ${M2_HOME}/conf/settings.xml 中的全局 settings profile。
+
+
+
+
+
