@@ -1,0 +1,169 @@
+ubuntu入门命令
+----------------------------------------------
+文件操作
+
+ls -h 将以KB/MB/GB的形式给出文件大小,而不是以纯粹的Bytes.
+
+ls -a 将列出包括隐藏文件(以.开头的文件)在内的所有文件.
+ls -lR	递归地列出当前目录下的所有文件，（不包括目录）
+
+echo "Hello World"   打印""中间的内容
+
+alias rm='rm -i'   设置在所有删除命令执行时给予警告
+
+command | wc -l 统计行数
+
+sudo mkdir -p /firstLevel/secondLevel/thirdLevel        创建多级目录：例如在根目录下创建一个/firstLevel/secondLevel/thirdLevel三级目录
+
+sudo cp -r 要拷贝的目录名 目标路径       递归拷贝目录
+
+df -h   查看硬盘信息(以常见的单位)
+
+fdisk -l   查看硬盘及分区信息
+sudo find / -name my.cnf     直接查询文件位置
+
+locate my.cnf				使用文件索引的方式查询文件位置
+whereis		该命令只能用于搜索二进制文件(-b)、源代码文件(-s)、说明文件(-m)。如果省略参数则返回所有的信息。
+
+env		查看环境变量
+
+cd $JAVA_HOME		直接利用环境变量进入java的安装路径
+
+apropos  subject	查看与某个主题相关的命令列表
+
+sudo nautilus ./.m2/repository/    打开该目录的图形化界面
+
+
+ln -s ~/nodejs/bin/node /usr/local/bin/    使用软连接讲该命令创建为全局命令.创建时必须使用绝对路径
+==================权限管理======================================
+useradd userName	添加用户
+passwd userName		为用户设置密码
+userdel -r userName		删除用户，-r会删除用户的主目录和邮件池。
+
+
+
+chmod	用于添加、删除或修改文件或目录的权限。当与+号一起使用表示添加，与-号一起使用表示删除。
+	u	为文件所有者添加或删除权限
+	g	为用户组添加或删除权限
+	o	为不在文件用户组中的其它用户添加或删除权限
+	a	添加或删除所有用户的权限
+----r	读权限
+	w	写权限
+	x	执行权限
+例如：chmod go+w file.txt	为用户组和其它用户添加对file.txt文件的写操作权限
+
+chgrp	改变文件的组所有权
+=================================================================
+压缩 
+tar –cvf jpg.tar *.jpg //将目录里所有jpg文件打包成tar.jpg 
+tar –czf jpg.tar.gz *.jpg //将目录里所有jpg文件打包成jpg.tar后，并且将其用gzip压缩，生成一个gzip压缩过的包，命名为jpg.tar.gz 
+tar –cjf jpg.tar.bz2 *.jpg //将目录里所有jpg文件打包成jpg.tar后，并且将其用bzip2压缩，生成一个bzip2压缩过的包，命名为jpg.tar.bz2 
+tar –cZf jpg.tar.Z *.jpg //将目录里所有jpg文件打包成jpg.tar后，并且将其用compress压缩，生成一个umcompress压缩过的包，命名为jpg.tar.Z 
+rar a jpg.rar *.jpg //rar格式的压缩，需要先下载rar for linux 
+zip jpg.zip *.jpg //zip格式的压缩，需要先下载zip for linux 
+
+
+解压 
+tar –xvf file.tar //解压 tar包 
+tar -xzvf file.tar.gz //解压tar.gz 
+tar -xjvf file.tar.bz2 //解压 tar.bz2 
+tar –xZvf file.tar.Z //解压tar.Z 
+unrar e file.rar //解压rar 
+unzip file.zip //解压zip 
+unzip *.jar -d 路径   将文件解压到指定目录
+
+sudo tar -xzf postman.tar.gz -C /opt     将文件解压到指定位置
+
+1、*.tar 用 tar –xvf 解压 
+2、*.gz 用 gzip -d或者gunzip 解压 
+3、*.tar.gz和*.tgz 用 tar –xzf 解压 
+4、*.bz2 用 bzip2 -d或者用bunzip2 解压 
+5、*.tar.bz2用tar –xjf 解压 
+6、*.Z 用 uncompress 解压 
+7、*.tar.Z 用tar –xZf 解压 
+8、*.rar 用 unrar e解压 
+9、*.zip 用 unzip 解压
+
+
+源码安装程序（.tar、tar.gz、tar.bz2、tar.Z）
+
+首先解压缩源码压缩包然后通过tar命令来完成
+
+a．解xx.tar.gz：tar zxf xx.tar.gz 
+b．解xx.tar.Z：tar zxf xx.tar.Z 
+c．解xx.tgz：tar zxf xx.tgz 
+d．解xx.bz2：bunzip2 xx.bz2 
+e．解xx.tar：tar xf xx.tar
+
+然后进入到解压出的目录中，建议先读一下README之类的说明文件，因为此时不同源代码包或者预编译包可能存在差异，然后建议使用ls -F --color或者ls -F命令（实际上我的只需要 l 命令即可）查看一下可执行文件，可执行文件会以*号的尾部标志。
+
+一般依次执行./configure
+
+             make
+
+             sudo make install
+
+即可完成安装。
+
+
+===================系统命令==================================
+Source命令也称为“点命令”，也就是一个点符号（.）。source命令通常用于重新执行刚修改的初始化文件，使之立即生效，而不必注销并重新登录。
+
+用法：source filename 或 . filename
+
+==================ps========================================
+
+ps -ax | less    查看所有进程，结合less一页页显示
+
+ps -u limeng     查看指定用户的进程
+
+kill -9 25718 25719 25811 25812   一次杀掉多个进程
+
+pstree     以树状图查看进程关系
+
+===================网络==========================================
+ wget是个专职的下载利器，简单，专一，极致；而curl可以下载，但是长项不在于下载，而在于模拟提交web数据，POST/GET请求，调试网页，等等。
+常用wget来下载文件，加 -c选项不怕断网；使用curl 来跟网站的API 交互，简便清晰。 
+
+ netstat -atunple     显示端口的当前所有端口的详细信息
+
+		-a (all)显示所有选项，默认不显示LISTEN相关
+		-t (tcp)仅显示tcp相关选项
+		-u (udp)仅显示udp相关选项
+		-n 拒绝显示别名，能显示数字的全部转化成数字。
+		-l 仅列出有在 Listen (监听) 的服務状态
+
+		-p 显示建立相关链接的程序名
+		-r 显示路由信息，路由表
+		-e 显示扩展信息，例如uid等
+		-s 按各个协议进行统计
+		-c 每隔一个固定时间，执行该netstat命令。
+
+
+==================软件包命令=======================================================
+
+dpkg -r soft		 这里的dpkg -r 含义是移除软件但是保留配置 
+
+dpkg -P soft		 删除配置信息
+
+dpkg -l soft		 查看软件信息
+
+dpkg-query -L nano   查看本地软件信息
+
+apt-get remove softname1 softname2 …;（移除软件包，当包尾部有+时，意为安装）
+apt-get --purge remove softname1 softname2...;(同时清除配置)
+
+===========================创建desktop================================
+sudo ln -s /opt/Postman/Postman /usr/bin/postman
+
+cat > ~/.local/share/applications/postman.desktop <<EOL
+[Desktop Entry]
+Encoding=UTF-8
+Name=Postman
+Exec=postman
+Icon=/opt/Postman/resources/app/assets/icon.png
+Terminal=false
+Type=Application
+Categories=Development;
+EOL
+
