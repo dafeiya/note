@@ -24,20 +24,36 @@ $('div.details').load('more.html #content')
 	连缀就像是一口气说出一大段话——虽然效率很高,但对别人来说可能会难于理
 
 	隐式迭代机制
+-------------------------------------------------------------------
+
+	无论什么时候,都应该把简化代码的编写和维护工作放在首位。只有在性能确确实实是一个可以感知的问题时,再考虑牺牲可读性来优化代码执行速度。
+
 =============================================================================================
 重点api:
 
 parseFloat()					在一个字符串中从左到右地查找一个浮点(十进制)数,还会去掉末尾的非数字字符,如果字符串本身以一个非数字开头,那么 parseFloat() 会返回 NaN
 parseInt()						与上面类似,区别为查找一个十进制整数
+
+[].join()						拼接数组中的字符串
+['a','b','c'].join('')			输出 'abc'
+['a','b','c'].join('1')			输出 'a1b1c'
+
+JSON.parse()					解析json字符串
+
 --------------------------------------------------------------------
 
 .is(selector)					接收一个选择符表达式,然后用选择符来测试当前的jQuery对象。如果集合中至少有一个元素与选择符匹配, 则返回 true 。							
 $("#div").is('button')			测试id=div的元素是否包含 button 标签						
 
+.hasClass(.class)				判断jQuery对象是否含有指定类
 .addClass(.class)				为jQuery对象增加额外样式
 .removeClass([.class])			移除指定的类样式.方法的参数是可选的,即当省略参数时,该方法会移除元素中所有的类
 .toggleClass()					自动根据相应的类是否存在而添加或删除类
 .toggle()						自动隐藏/显示对象
+
+.attr(), .revoveAttr()			添加/删除属性,可以传入一个对象字面量
+.prop()							与attr()方法类似
+
 
 .css()							修改内联 CSS
 	.css('property')			取得单个属性的值
@@ -47,6 +63,8 @@ $("#div").is('button')			测试id=div的元素是否包含 button 标签
 		property1: 'value1',
 		'property-2': 'value2'
 	})
+
+.each()							显式迭代器
 --------------------------------------------------------------------
 .next()							只选择下一个最接近的同辈元素
 .nextAll()						选其后的全部同辈元素单元格
@@ -66,6 +84,69 @@ $('td:contains(Henry)').parent().children()
 		$('a').filter(function() {
 			return this.hostname && this.hostname != location.hostname;
 		})
+
+--------------------------------------------------------------------
+DOM操作:
+
+插入元素:
+.insertBefore()					在现有元素外部、之前添加内容;
+.insertAfter()					在现有元素外部、之后添加内容。
+
+.prependTo()					在现有元素内部、之前添加内容;
+.appendTo()						在现有元素内部、之后添加内容;
+eg:$('<p>Hello</p>').appendTo('#container');
+
+反向插入:	(反向方法也执行相同的操作,只不过“目标”和“内容”正好)
+.append()						与.appendTo()相反
+.prepend()						与.prependTo()相反
+.before()						与.insertBefore()相反
+.after()						与.insertAfter()相反
+
+eg:$('#container').append('<p>Hello</p>');
+
+包装元素:
+wrap('<>')						把每个元素分别包装在各自的容器(html标签)中						
+wrapAll('<>')					把所有元素包装在一个容器中
+
+
+复制元素
+.clone(boolean)					复制元素,传入true,则元素上的事件也一并复制
+eg:$('div.chapter p:eq(0)').clone().insertBefore('div.chapter');
+
+内容的getter/setter				无参数时getter,有参数时setter
+.html()															
+.text()
+
+
+(1) 要在HTML中创建新元素,使用 $() 函数。
+
+(2) 要在每个匹配的元素中插入新元素,使用:
+	.append()	/	.appendTo()
+	.prepend()	/	.prependTo()
+
+(3) 要在每个匹配的元素相邻的位置上插入新元素,使用:
+	.after()	/	.insertAfter()
+	.before()	/	.insertBefore()
+
+(4) 要在每个匹配的元素外部插入新元素,使用:
+	.wrap()
+	.wrapAll()
+	.wrapInner()
+
+(5) 要用新元素或文本替换每个匹配的元素,使用:
+	.html()
+	.text()
+	.replaceAll()
+	.replaceWith()
+
+(6) 要移除每个匹配的元素中的元素,使用:
+	.empty()
+
+(7) 要从文档中移除每个匹配的元素及其后代元素,但不实际删除它们,使用:
+	.remove()
+	.detach()
+
+
 --------------------------------------------------------------------
 .on(events,fn)					为jQuery对象指定任何DOM事件,并为该事件添加一种行为			
 	$('#alert').on('click', function() {
@@ -81,19 +162,36 @@ $('td:contains(Henry)').parent().children()
 .mouseenter() 和 mouseleave()	鼠标移动事件,可以避免冒泡问题
 
 --------------------------------------------------------------------
-.show(time), .hide(time)				显示和隐藏元素,.css('display','string') 方法的简写方式,可传入数字,指定动画的时长,单位毫秒
-	hide()会同时减少元素的高度、宽度和不透明度,直至这3个属性的值都达到0,与此同时会为该元素应用CSS规则 display:none。而 .show(' duration ') 方法则会从上到下增大元素的高度,从左到右增大 元素的宽度,同时从0到1增加元素的不透明度,直至其内容完全可见。							
+.show(time), .hide(time)				显示和隐藏元素,.css('display','string') 方法的简写方式,可传入数字,指定动画的时长,单位毫秒,立即隐藏或显示匹配的元素集合,不带任何动画效果
+	.hide()会同时减少元素的高度、宽度和不透明度,直至这3个属性的值都达到0,与此同时会为该元素应用CSS规则 display:none。而 .show(' duration ') 方法则会从上到下增大元素的高度,从左到右增大 元素的宽度,同时从0到1增加元素的不透明度,直至其内容完全可见。							
 .toggle()						自动隐藏/显示对象
 
-.fadeIn(time), .fadeOut(time)			淡入淡出
-
-.slideUp(time), .slideDown(time)		滑上滑下,这两个动画方法仅改变元素的高度 。
-
+.fadeIn(time), .fadeOut(time)			淡入淡出,修改不透明度
+.fadeToggle(time)
 
 
+.slideUp(time), .slideDown(time)		滑上滑下,这两个动画方法仅改变元素的高度,高度为0则隐藏。
+.slideToggle(time)					
+
+.animate()								自定义动画
 
 
+--------------------------------------------------------------------
+全局jQuery函数:
+	
+$.each(obj,fn)					通用的遍历方法,可用于遍历数组或对象. fn中传入两个参数,一个索引,一个与之对应的内容, 而$().each()只能遍历指定的对象
+eg: $.each([1,2,3],function(i,value){...})	//第一个参数是obj时,可以使用this来遍历
 
+
+$.getScript(jsfile)				通过jQuery直接加载.js文件
+
+$.ajaxSetup()					可以修改调用Ajax方法时每个选项的默认值	
+
+$.map()
+
+$.grep()
+
+$.extend(defaults, opts);		opts 对象中存在的参数可以覆盖 defaults 中的参数,而opts中未指定的参数使用预先定义的默认值,若extend()没有参数,则使用默认参数						
 
 ======2.选择元素=======================================================================================
 
@@ -105,6 +203,12 @@ $('td:contains(Henry)').parent().children()
 	if ($firstPara.is(':hidden')) {
 		//......
 	}
+
+	由于 $ 是JavaScript变量中合法的字符,因此可以利用它来提醒自己该变量中保存着一个jQuery对象。
+	eg:var $speech = $('div.speech');
+	
+	除了选择元素之外, $() 函数的圆括号内还有另外一个玄机——这个强大的特性使$() 函数不仅能够改变页面的视觉外观,更能改变页面中实际的内容。只要在这对圆括号中放入一组HTML元素,就能轻而易举地改变整个DOM结构。
+
 
 jquery中的选择符:
 
@@ -125,6 +229,8 @@ ID					#some-id {}					$('#some-id')							取得文档中ID为 some-id 的一�
 .....................................................................................................................................................
 自定义选择符( : )	
 自定义选择符并非浏览器原生的DOM选择符,性能较低
+但针对选择符和遍历速度所作的任何决定,都有可能伴随着更新更快的浏览器发布,或者jQuery新版本加入巧妙的速度优化而变得毫无价值。为了真正提升性能,最好反复思考自己假定的条件
+
 :eq(index)										$('tr:eq(1)')							指定选择元素
 :even											$('tr:even')							选择所有tr中的奇数行
 :odd											$('tr:odd')								偶数行				
@@ -230,6 +336,9 @@ jQuery始终会在模型的冒泡阶段注册事件处理程序,我们总是可�
 		某些特殊的html标签附带着默认的事件,如<a>,<input type="submit">会出发submit事件,.preventDefault() 方法则可以在触发默认操作之前终止事件
 		.preventDefault()				阻止默认操作	
 	
+	推荐使用event.preventDefault() 而不是 return false 结束该处理程序。(在碰到错误之前)阻止默认动作就能确保不会提交表单,而且浏览器的错误控制台也会收到错误报告。
+
+
 	事件传播和默认操作是相互独立的两套机制,在二者任何一方发生时,都可以终止另一方。 如果想要同时停止事件传播和默认操作,可以在事件处理程序中返回 false ,这是对在事件对象 上同时调用 .stopPropagation() 和 .preventDefault() 的一种简写方式。
 
 	4.事件命名空间
@@ -257,6 +366,243 @@ switch (this.id) {				//js中的switch语句可以传入字符串
 	default:
 		num = parseFloat(defaultSize);
 }
+
+
+.....................................................................................................................................................
+所有块级元素默认的CSS定位属性都是 static ,这个值精确地表明:在改变元素的定位属性之前试图移动它们,它们只会保持静止不动。
+
+并发与排队效果:
+	
+	1.一组元素上的效果:
+		1.当在一个.animate()方法中以多个属性的方式应用时,是同时发生的;
+		2. 当以方法连缀的形式应用时,是按顺序发生的(排队效果)——除非queue选项值false。
+	2.多组元素上的效果:
+		1.默认情况下是同时发生的;
+		2.当在另一个效果方法或者在 .queue() 方法的回调函数中应用时,是按顺序发生的(排队效果)。
+
+
+
+======5.操作DOM	=======================================================================================
+
+DOM遍历的性能问题:
+
+	无论什么时候,都应该把简化代码的编写和维护工作放在首位。只有在性能确确实实是一个可以感知的问题时,再考虑牺牲可读性来优化代码执行速度。
+	虽然应该避免过早优化,但最低限度地重复选择符和遍历方法则始终是值得提倡的。因为这些操作都可能会耗费较多时间,用得越少越好。而要避免重复,有两个策略值得讨论,那就是连缀和缓存对象。
+	1. 使用连缀避免重复查找,从而改进性能	
+	2. 使用缓存来改进性能(临时变量)
+	
+----------jQuery的DOM原理解析 --------------------------------------------------------------------
+	$() 函数得到的对象是一个数组结构,其中包含着与该选择符匹配的每个DOM元素的引用。
+这个数组对象中还隐藏着其他一些属性:
+	1:	.context 属性中包含着一个DOM节点(通常是 document )的引用,搜索就是从这个节点开始的
+	2:	.selector 属性中保存着创建最终对象的选择符表达式
+	3:	__proto__ 
+	4:  .prevObject属性保存着调用遍历方法的那个jQuery对象。若没有调用关系,则该属性为undefined
+	每个jQuery对象都有一个 .prevObject 属性指向前一个对象。这样,就有了一个实现了栈的列表结构。每个遍历方法都会找到一组新元素,然后把这组元素压入到栈中。这个栈只有我们需要它的时候才有用,而 .end() 和 .addBack() 方法就是用来操作这个栈的。
+
+------------------------------------------------------------------------------
+	HTML属性与DOM属性有一点区别。HTML属性是指页面标记中放在引号中的值,而DOM属性则是指通过JavaScript能够存取的值
+
+值回调:
+
+		$('div.chapter a').attr({
+			rel: 'external',
+			title: 'Learn more at Wikipedia',
+			id: function(index, oldValue) {					//值回调,使用带返回值的自执行匿名函数
+					return 'wikilink-' + index;
+				}
+		});
+
+
+
+.each()显式迭代:
+		$('span.footnote').each(function(index) {
+			$(this).before(['<sup>',index + 1,'</sup>'].join('')).appendTo($notes).wrap('<li></li>');
+		});
+
+
+======6. Ajax ===============================================================================
+
+Json:
+	在对象字面量和数组字面量的基础上,JSON格式的语法具有很强的表达能力,但对其中的值也有一定的限制。例如,JSON规定所有对象键以及所有字符串值,都必须包含在双引号中。
+	尽管JSON格式很简洁,但它却不容许任何错误。所有方括号、花括号、引号和逗号都必须合理且正确地使用,否则文件不会加载
+
+全局jQuery函数:
+
+	$.ajax() 是作为全局jQuery对象(由jQuery库定义的jQuery或$对象)的方法定义的,也就是说,它不是个别jQuery对象实例(即通过 $() 函数创建的对象)的方法,从逻辑上说,没有该方法适用的DOM元素;作为结果的对象只能提供给脚本,而不能插入到页面中。
+	我们把 $.ajax() 称为类方法。为了便于理解,我们在这里称其为全局函数,这些全局函数使用的是 jQuery 命名空间
+
+	.serialize()作用于一个jQuery对象,将匹配的DOM元素转换成能够随Ajax请求传递的查询字符串
+
+	$('#form').submit(function(event) {		
+		event.preventDefault();								//阻止默认的动作
+		var formValues = $(this).serialize();				//提取当前对象中的name和值,得到序列化对象
+		$.get('f.php', formValues, function(data) {			//发送ajax请求
+			$('#dictionary').html(data);					//处理返回值
+		});
+	});
+
+
+正常情况下,我们是不能从远程服务器(这个例子中的 examples.learningjquery.com )取得JSON数据的。
+
+
+======7. 编写jQuery插件 ===============================================================================
+
+
+编写jQuery插件:
+
+1.自执行函数:
+	在编写jQuery插件时,必须假设jQuery库已经加载到了页面中。可是,我们不能假设 $ 别名一定可用,虽然可以让渡$使用权,但不能使用 $ 别名会导致代码难以理解,为了解决这个问题,我们可以在插件的作用域内定义这个快捷方式,方法就是定义一个函数并马上调用它,这种定义并立即调用函数的语法通常被称为立即调用的函数表达式(IIFE,Immediately Invoked Function Expression):
+
+	(function($) {
+		//在这里添加代码
+	})(jQuery);
+
+	这个包装函数只接收一个参数,我们通过这个参数传入了 jQuery 对象。这个参数的名字是 $ ,因此在这个函数内部,使用 $ 别名就不会有冲突了。
+
+2.自定义全局函数:
+	所谓全局函数,实际上就是 jQuery 对象的方法,但从实践的角度上看,它们是位于 jQuery 命名空间内部的函数。要向 jQuery 的命名空间中添加一个函数,只需将这个新函数指定为 jQuery 对象的一个属性,如果原来有相同的属性,就会替换原来的属性
+	(function($) {
+		$.sum = function(array) {	//定义全局的jQuery属性
+			//在这里添加代码
+		};
+	})(jQuery);
+	$.sum();		//调用全局sum()方法
+
+3.使用命名空间隔离函数:
+	由于个人命名的全局函数很可能与jQuery中已有的重名,为了避免冲突,最好的办法是把属于一个插件的全局函数都封装到一个对象中
+	(function($) {
+		$.Lm={									//创建全局属性Lm,并为该对象定义对象字面量
+			test:function(){console.log(123)	//在对象字面量中定义方法或属性
+			}
+		}
+	})(jQuery);
+	$.Lm.test()									//通过全局对象调用test()方法
+
+	使用这种技术(以及足够独特的命名空间),就能够避免全局函数污染命名空间
+
+4.为jQuery对象添加自定义函数
+	jQuery中大多数内置的功能都是通过其对象实例的方法提供的,当函数需要操作DOM元素时,就是将函数创建为 jQuery 实例方法的好机会。添加全局函数需要以新方法来扩展 jQuery 对象。添加实例方法也与此类似,但扩展的却是 jQuery.fn 对象:
+	jQuery.fn 对象是 jQuery.prototype 的别名,使用别名是出于简洁的考虑
+	
+	jQuery.fn.myMethod = function() {			//给jQuery对象添加myMethod()方法
+		alert('Nothing happens.');				//可以在任何插件方法内部,使用关键字 this 引用当前的jQuery对象并进行操作。
+	};
+
+	$('div').myMethod();						//任何jQuery对象都可以调用该方法
+
+	(function($) {
+		$.fn.swapClass = function(class1, class2) {				//定义jQuery对象方法
+			this.each(function() {								//此处this指代jQuery对象,即$()
+				var $element = $(this);							//此时this为js中的意义,引用的是一个DOM元素
+				if ($element.hasClass(class1)) {
+					$element.removeClass(class1).addClass(class2);
+				}
+				else if ($element.hasClass(class2)) {
+					$element.removeClass(class2).addClass(class1);
+				}
+			});
+		};
+	})(jQuery);
+	
+	除了隐式迭代之外,jQuery用户也应该能够正常使用连缀行为。因而,我们必须在所有插件方法中返回一个jQuery对象,除非相应的方法明显用于取得不同的信息。返回的jQuery对象通常就是 this 所引用的对象。
+	(function($) {
+		$.fn.swapClass = function(class1, class2) {
+			return this.each(function() {						//返回的jQuery对象通常就是 this 所引用的对象
+				var $element = $(this);
+				if ($element.hasClass(class1)) {
+					$element.removeClass(class1).addClass(class2);
+				}
+				else if ($element.hasClass(class2)) {
+					$element.removeClass(class2).addClass(class1);
+				}
+			});
+		};
+	})(jQuery);
+
+5.1 提供灵活的方法参数
+
+			(function ($) {							//定义插件
+                $.fn.util={
+                    fun:function (people) {			//传入对象参数
+                        console.log(people.name)	
+                    }
+                }
+            })(jQuery);
+													//使用插件
+            var people={							//创建对象,js中的json与对象一致
+                age:15,
+                name:'dafeiya'
+            };
+            $("#test").click(function () {
+                $("#test").util.fun(people);		//传入参数
+            })
+
+5.2 配置默认参数值
+	随着方法的参数逐渐增多,始终指定每个参数并不是必须的。此时,一组合理的默认值可以增强插件接口的易用性
+	所幸的是,以对象作为参数可以帮我们很好地达成这一目标,它可以为用户未指定的参数自动传入默认值
+
+			 (function ($) {
+                $.fn.util={
+                    fun:function (opts) {
+                        var defaults={								//设置默认值
+                            age:22,
+                            name:"dafeiya",
+							getInfo:function () {					//设置回调函数
+                                alert("name:"+this.name+"; age:"+this.age);
+                            }
+                        };
+                        var people=$.extend(defaults,opts);			//opts对象中存在的参数会覆盖defaults中的参数,没有则使用defaults中的参数
+                        console.log(people.name+"; "+people.age);
+                        people.getInfo();							//调用回调函数
+
+                    }
+                }
+            })(jQuery);
+
+            var people={											//测试数据
+                age:15
+            };
+            $("#test").click(function () {
+                $("#test").util.fun(people);						//输出 dafeiya; 15
+				})
+
+5.3 可定制的默认值
+	通过为方法参数设定合理的默认值,能够显著改善用户使用插件的体验。但是,到底什么默认值合理有时候也很难说。如果用户脚本会多次调用我们的插件,每次调用都要传递一组不同于默认值的参数,那么通过定制默认值就可以减少很多需要编写的代码量。
+	要支持默认值的可定制,需要把它们从方法定义中移出,然后放到外部代码可以访问的地方
+	
+			(function ($) {
+                $.fn.util={
+                    fun:function (opts) {
+                        var people=$.extend({},$.fn.util.defaults,opts);	//为了防止方法中可能会对defaults产生修改,多传入一个 {} 对象,该对象会继承defaults和opts对象
+                        console.log(people.name+"; "+people.age);
+                        people.getInfo();
+                    },
+                    defaults:{										//将默认值部分从函数中移出,放到外部代码可以访问的地方
+                        age:22,
+                        name:"defaultname",
+                        getInfo:function () {
+                            alert("name:"+this.name+"; age:"+this.age);
+                        }
+                    }
+                }
+            })(jQuery);
+
+            $.fn.util.defaults.name='dafeiya';						//更改默认值
+			var people={
+                age:15
+            };
+            $("#test").click(function () {
+                $("#test").util.fun(people);
+            })
+
+
+
+
+
+
+
+
 
 
 
