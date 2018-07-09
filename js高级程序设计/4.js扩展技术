@@ -1,0 +1,221 @@
+
+===js 错误处理============================================================================
+
+1.支持try catch finally
+	try{
+		// 可能会导致错误的代码
+	} catch(error){ 
+		// 在错误发生时怎么处理
+		error.message	//message 属性是唯一一个能够保证所有浏览器都支持的属性
+
+	} finally{
+		// 必然执行的代码	
+	}
+
+	throw关键字:
+		与 try-catch 语句相配的还有一个 throw 操作符,用于随时抛出自定义错误。抛出错误时,必须要给 throw 操作符指定一个值,这个值是什么类型,没有要求。
+		throw 12345;
+		throw "Hello world!";
+		throw true;
+		throw { name: "JavaScript"};
+
+	throw new Error("Something bad happened.");
+	在遇到 throw 操作符时,代码会立即停止执行。仅当有 try-catch 语句捕获到被抛出的值时,代码才会继续执行。
+
+	创建自定义错误:
+		function CustomError(message){
+			this.name = "CustomError";
+			this.message = message;
+		}
+		CustomError.prototype = new Error();	//通过原型继承Error
+		throw new CustomError("My message");
+
+
+2.错误类型:
+	ECMA-262 定义了下列 7 种错误类型:
+	1.Error: (常用于自定义异常)
+		Error 是基类型,其他错误类型都继承自该类型,因此所有错误类型共享了一组相同的属性,这个基类型的主要目的是供开发人员抛出自定义错误。
+	
+	2.EvalError: 
+		使用 eval() 函数而发生异常时被抛出,
+	
+	3.SyntaxError:
+		语法错误的 JavaScript 字符串传入 eval() 函数时,就会导致此类错误
+		如果语法错误的代码出现在 eval() 函数之外,则不太可能使用 SyntaxError ,因为此时的语法错误会导致 JavaScript 代码立即停止执行。
+	
+	4.RangeError:
+		RangeError 类型的错误会在数值超出相应范围时触发,如数组越界
+	
+	5.ReferenceError: * 引用错误
+		找不到对象或访问不存在的变量时,就会发生这种错误,"object expected"
+	
+	6.TypeError: *	类型错误
+		在执行特定于类型的操作时,变量的类型并不符合要求所致。在变量中保存着意外的类型时,或者在访问不存在的方法时,都会导致这种错误。
+	
+	7.URIError:
+		使用 encodeURI() 或 decodeURI() ,而 URI 格式不正确时,就会导致 URIError 错误
+	
+	try {							//异常的捕获和处理
+		someFunction();
+	} catch (error){
+		if (error instanceof TypeError){
+			//处理类型错误
+		} else if (error instanceof ReferenceError){
+			//处理引用错误
+		} else {
+			//处理其他类型的错误
+		}
+	}
+
+3.常见的错误类型:
+	由于 JavaScript 是松散类型的,而且也不会验证函数的参数,因此错误只会在代码运行期间出现。一般来说,需要关注三种错误:
+	1.类型转换错误
+	2.数据类型错误
+	3.通信错误
+
+	大体上来说,基本类型的值应该使用 typeof 来检测,而对象的值则应该使用 instanceof 来检测。
+
+
+===关于json============================================================================
+
+	关于 JSON,最重要的是要理解它是一种数据格式,不是一种编程语言。json只是利用了 JavaScript 中的一些模式来表示结构化数据, 虽然具有相同的语法形式,但 JSON 并不从属于 JavaScript。而且,并不是只有 JavaScript 才使用 JSON,毕竟 JSON 只是一种数据格式。很多编程语言都有针对 JSON 的解析器和序列化器。
+	由于 JSON 是 JavaScript 语法的子集,因此 eval() 函数可以解析、解释并返回 JavaScript 对象和数组。但使用 eval() 对 JSON 数据结构求值存在风险,因为可能会执行一些恶意代码。
+	
+	ECMAScript 5 对解析 JSON 的行为进行规范,定义了全局对象 JSON 。JSON 对象有两个方法: stringify() 和 parse() 。在最简单的情况下,这两个方法分别用于把JavaScript 对象序列化为 JSON 字符串和把 JSON 字符串解析为原生 JavaScript 值
+	在序列化 JavaScript 对象时,所有函数及原型成员都会被有意忽略,不体现在结果中。此外,值为undefined 的任何属性也都会被跳过。结果中最终都是值为有效 JSON 数据类型的实例属性。
+
+	var person={
+		name:'dafeiya',
+		age:22,
+		sex:'男'
+	}
+	var personJson=JSON.stringify(person);
+	personJson				//"{"name":"dafeiya","age":22,"sex":"男"}"
+	var personJson=JSON.stringify(person,null,4);
+	personJson				//"{
+									"name": "dafeiya",
+									"age": 22,
+									"sex": "男"
+								}"
+	var personJson=JSON.stringify(person,null,'--');
+	personJson				//"{
+								--"name": "dafeiya",
+								--"age": 22,
+								--"sex": "男"
+								}"
+
+
+===关于ajax和跨域============================================================================
+
+1. 跨源资源共享:
+	通过 XHR 实现 Ajax 通信的一个主要限制,来源于浏览器对跨域提供的安全策略。默认情况下,XHR 对象只能访问与包含它的页面位于同一个域中的资源。这种安全策略可以预防某些恶意行为。但是,实现合理的跨域请求对开发某些浏览器应用程序也是至关重要的。
+	CORS(Cross-Origin Resource Sharing,跨源资源共享)是 W3C 的一个工作草案,定义了在必须访问跨源资源时,浏览器与服务器应该如何沟通。CORS 背后的基本思想,就是使用自定义的 HTTP 头部让浏览器与服务器进行沟通,从而决定请求或响应是应该成功,还是应该失败。在发送该请求时,需要给它附加一个额外的 Origin 头部,其中包含请求页面的源信息(协议、域名和端口),以便服务器根据这个头部信息来决定是否给予响应。
+	下面是 Origin 头部的一个示例:
+	Origin: http://www.nczonline.net
+	如果服务器认为这个请求可以接受,就在 Access-Control-Allow-Origin 头部中回发相同的源信息
+	Access-Control-Allow-Origin: http://www.nczonline.net
+	如果没有这个头部,或者有这个头部但源信息不匹配,浏览器就会驳回请求。正常情况下,浏览器会处理请求。注意,请求和响应都不包含 cookie 信息。
+
+	不同浏览器对CORS有各自的实现方式,
+	IE对CORS的实现:
+		引入了 XDR( XDomainRequest )类型。这个对象与 XHR 类似,但能实现安全可靠的跨域通信。XDR 对象的安全机制部分实现了 W3C 的 CORS 规范。
+		1.cookie 不会随请求发送,也不会随响应返回。
+		2.只能设置请求头部信息中的 Content-Type 字段。
+		3.不能访问响应头部信息。
+		4.只支持 GET 和 POST 请求。
+	
+	其他浏览器对CORS的实现:
+		WebKit 都通过 XMLHttpRequest对象实现了对 CORS 的原生支持。但为了安全,对跨域 XHR 对象做了一些限制
+		1.不能使用 setRequestHeader() 设置自定义头部。
+		2.不能发送和接收 cookie。
+		3.调用 getAllResponseHeaders() 方法总会返回空字符串。
+	由于无论同源请求还是跨源请求都使用相同的接口,因此对于本地资源,最好使用相对 URL,在访问远程资源时再使用绝对 URL。这样做能消除歧义,避免出现限制访问头部或本地 cookie 信息等问题。
+
+2.其他跨域技术:
+	在 CORS 出现以前,要实现跨域 Ajax 通信颇费一些周折。开发人员想出了一些办法,利用 DOM 中能够执行跨域请求的功能,在不依赖 XHR 对象的情况下也能发送某种请求。虽然 CORS 技术已经无处不在,但开发人员自己发明的这些技术仍然被广泛使用,毕竟这样不需要修改服务器端代码。
+	1.图像Ping  <img> 标签:
+		第一种跨域请求技术是使用 <img> 标签
+		一个网页可以从任何网页中加载图像,不用担心跨域不跨域。这也是在线广告跟踪浏览量的主要方式。通过动态地创建图像,使用它们的 onload 和 onerror 事件处理程序来确定是否接收到了响应。
+		图像 Ping 是与服务器进行简单、单向的跨域通信的一种方式。请求的数据是通过查询字符串形式发送的,而响应可以是任意内容,但通常是像素图或 204 响应。通过图像 Ping,浏览器得不到任何具体的数据,但通过侦听 load 和 error 事件,它能知道响应是什么时候接收到的
+		var img = new Image();
+		img.onload = img.onerror = function(){
+			alert("Done!");
+		};
+		img.src = "https://www.baidu.com/img/bd_logo1.png?where=super";
+
+		图像 Ping 最常用于跟踪用户点击页面或动态广告曝光次数。图像 Ping 有两个主要的缺点,一是只能发送 GET 请求,二是无法访问服务器的响应文本。因此,图像 Ping 只能用于浏览器与服务器间的单向通信。
+
+	2.JSONP:
+		JSONP 是 JSON with padding(填充式 JSON 或参数式 JSON)的简写,是应用 JSON 的一种新方法,在后来的 Web 服务中非常流行。 JSONP 看起来与 JSON 差不多,只不过是被包含在函数调用中的 JSON,
+		callback({ "name": "Nicholas" });
+		JSONP 由两部分组成:回调函数和数据。回调函数是当响应到来时应该在页面中调用的函数。回调函数的名字一般是在请求中指定的。而数据就是传入回调函数中的 JSON 数据。下面是一个典型的 JSONP请求。
+		http://freegeoip.net/json/?callback=handleResponse
+
+		与图像 Ping 相比,它的优点在于能够直接访问响应文本,支持在浏览器与服务器之间双向通信.
+		JSONP 是从其他域中加载代码执行。如果其他域不安全,很可能会在响应中夹带一些恶意代码,而此时除了完全放弃 JSONP 调用之外,没有办法追究。因此在使用不是你自己运维的 Web 服务时,一定得保证它安全可靠。
+
+	3.Comet:
+		Ajax 是一种从页面向服务器请求数据的技术,而 Comet 则是一种服务器向页面推送数据的技术(经常也有人称为“服务器推送”)。Comet 能够让信息近乎实时地被推送到页面上,非常适合处理体育比赛的分数和股票报价。
+		有两种实现 Comet 的方式:长轮询和 HTTP 流
+		1.长轮询:
+			长轮询是传统轮询(也称为短轮询)的一个翻版,页面发起一个到服务器的请求,然后服务器一直保持连接打开,直到有数据可发送。发送完数据之后,浏览器关闭连接,随即又发起一个到服务器的新请求。这一过程在页面打开期间一直持续不断。
+
+*传统轮询(也称为短轮询)   即浏览器定时向服务器发送请求,看有没有更新的数据
+
+		无论是短轮询还是长轮询,浏览器都要在接收数据之前,先发起对服务器的连接。两者最大的区别在于服务器如何发送数据。短轮询是服务器立即发送响应,无论数据是否有效,而长轮询是等待发送响应。轮询的优势是所有浏览器都支持
+		
+		2.HTTP 流:
+			HTTP流在页面的整个生命周期内只使用一个 HTTP 连接。具体来说,就是浏览器向服务器发送一个请求,而服务器保持连接打开,然后周期性地向浏览器发送数据。
+			HTTP流既可以使用在页面中插入服务端代码读取流实现(例如jsp内插入java代码),也可以利用XHR 对象实现 HTTP 流
+
+		EMCSjs中提供了实现Coment的api,如SSE
+		
+		SSE(Server-Sent Events,服务器发送事件):
+			SSE是围绕只读 Comet 交互推出的 API 或者模式。
+			SSE API用于创建到服务器的单向连接,服务器通过这个连接可以发送任意数量的数据。服务器响应的 MIME类型必须是 text/event-stream ,而且是浏览器中的 JavaScript API 能解析格式输出。
+			SSE 支持短轮询、长轮询和 HTTP 流,而且能在断开连接时自动确定何时重新连接。
+
+			SSE要预订新的事件流,首先要创建一个新的 EventSource 对象,并传进一个入口点: 
+			var source = new EventSource("myevents.php");	//预定新的事件流
+			source.onmessage = function(event){				//使用事件方法处理返回的数据
+				var data = event.data;						//服务器发回的数据以字符串形式保存在 event.data 中
+				//处理数据
+			};
+			
+			EventSource有以下三个事件:
+				open :在建立连接时触发。
+				message :在从服务器接收到新事件时触发。
+				error :在无法建立连接时触发
+			
+			SSE对HTTP流的支持:
+				服务器事件会通过一个持久的 HTTP 响应发送,这个响应的 MIME 类型为 text/event-stream 。响应的格式是纯文本,最简单的情况是每个数据项都带有前缀 data: ,例如:
+				data: foo			//第一个返回值 foo
+									//有空行时,才会触发 message 事件,否则作为一次数据解析
+				data: bar			//第二个返回值 bar
+				
+				data: foo			//第三个返回值 foo\nbar
+				data: bar
+
+				还可以通过 id: 前缀可以给特定的事件指定一个关联的 ID
+				data: foo
+				id: 1
+
+				设置了 ID 后, EventSource 对象会跟踪上一次触发的事件。如果连接断开,会向服务器发送一个包含名为 Last-Event-ID 的特殊 HTTP 头部的请求,以便服务器知道下一次该触发哪个事件。在多次连接的事件流中,这种机制可以确保浏览器以正确的顺序收到连接的数据段
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,224 @@
+
+事件:
+
+	事件,就是文档或浏览器窗口中发生的一些特定的交互瞬间。JavaScript 与 HTML 之间的交互是通过事件实现的。
+	可以使用侦听器(或处理程序)来预订事件,以便事件发生时执行相应的代码。这种在传统软件工程中被称为观察员模式的模型,支持页面的行为(JavaScript 代码)与页面的外观(HTML 和 CSS 代码)之间的松散耦合。
+
+*事件流: 事件流描述的是从页面中接收事件的顺序。
+	当浏览器发展到第四代时(IE4 及 Netscape Communicator 4) ,浏览器开发团队遇到了一个很有意思的问题:页面的哪一部分会拥有某个特定的事件?要明白这个问题问的是什么,可以想象画在一张纸上的一组同心圆。如果你把手指放在圆心上,那么你的手指指向的不是一个圆,而是纸上的所有圆。两家公司的浏览器开发团队在看待浏览器事件方面还是一致的。如果你单击了某个按钮,他们都认为单击事件不仅仅发生在按钮上。换句话说,在单击按钮的同时,你也单击了按钮的容器元素,甚至也单击了整个页面。
+	但有意思的是,IE 和 Netscape 开发团队居然提出了差不多是完全相反的事件流的概念。IE 的事件流是事件冒泡流,而 Netscape Communicator 的事件流是事件捕获流
+
+	事件冒泡(event bubbling):  (建议使用)
+		IE 提出的事件流,即事件开始时由最具体的元素(文档中嵌套层次最深的那个节点)接收,然后逐级向上传播到较为不具体的节点(document文档)
+		目前,所有现代浏览器都支持事件冒泡,但在具体实现上还是有一些差别
+	
+	事件捕获(event capturing):
+		Netscape 团队提出的事件流,事件捕获的思想是不太具体的节点应该更早接收到事件,而最具体的节点应该最后接收到事件。
+		目前一些新版本的浏览器也都支持这种事件流模型,但由于老版本的浏览器不支持,因此很少有人使用事件捕获。
+		
+	我们建议读者放心地使用事件冒泡,在有特殊需要时再使用事件捕获。
+
+*事件处理程序
+	在元素的作用域中绑定的事件处理程序中,可以通过 this 访问元素的任何属性和方法,以这种方式添加的事件处理程序会在事件流的冒泡阶段被处理。
+
+
+=== 6.BOM =======================================================================
+	虽然ECMAScript 是 JavaScript 的核心,但如果要在 Web 中使用 JavaScript,那么 BOM(浏览器对象模型)则无疑才是真正的核心。BOM 提供了很多对象,用于访问浏览器的功能,这些功能与任何网页内容无关。多年来,缺少事实上的规范导致 BOM 既有意思又有问题,因为浏览器提供商会按照各自的想法随意去扩展它。于是,浏览器之间共有的对象就成为了事实上的标准。
+	W3C 为了把浏览器中 JavaScript 最基本的部分
+	标准化,已经将 BOM 的主要方面纳入了 HTML5 的规范中。
+
+	1.window 对象:
+		BOM 的核心对象是 window ,它表示浏览器的一个实例。它既是通过 JavaScript 访问浏览器窗口的一个接口,又是 ECMAScript 规定的 Global 对象。
+		1.window是全局作用域:
+			由于 window 对象同时扮演着 ECMAScript 中 Global 对象的角色,因此所有在全局作用域中声明的变量、函数都会变成 window 对象的属性和方法
+		定义全局变量与在 window 对象上直接定义属性还是有一点差别:全局变量不能通过 delete 操作符删除,而直接在 window 对象上的定义的属性可以。
+		代码注意:
+			尝试访问未声明的变量会抛出错误,但是通过查询 window 对象,可以知道某个可能未声明的变量是否存在。
+			var newValue = oldValue;			 //这里会抛出错误,因为 oldValue 未定义
+			var newValue = window.oldValue;		 //这里不会抛出错误,因为这是一次属性查询
+												 //newValue 的值是 undefined
+
+		2.window与frame:
+			与框架相关的window属性:top,parent,self (既可以作为window的属性,也可以作为独立的对象直接操作)
+			如果页面中包含框架frame/iframe,则每个框架都拥有自己的 window 对象,并且保存在 frames 集合中。在 frames集合中,可以通过数值索引(从 0 开始,从左至右,从上到下)或者框架名称来访问相应的 window 对象。每个 window 对象都有一个 name 属性,其中包含框架的名称。
+
+			<html>
+				<head>
+					<title>Frameset Example</title>
+				</head>
+				<frameset rows="160,*">
+					<frame src="frame.htm" name="topFrame">
+					<frameset cols="50%,50%">
+						<frame src="anotherframe.htm" name="leftFrame">
+						<frame src="yetanotherframe.htm" name="rightFrame">
+					</frameset>
+				</frameset>
+			</html>
+
+		top:
+			可以通过window.frames[0] 或者 window.frames["topFrame"]获取name="topFrame"的框架
+			不过,建议使用top而非 window 来引用这些框架,例如top.frames["topFrame"],因为对于在一个框架中编写的任何代码来说,其中的 window 对象指向的都是那个框架的特定实例,而非最高层的框架。top 对象始终指向最高(最外)层的框架,也就是浏览器窗口。因此可以确保在一个框架中正确地访问另一个框架。
+		parent:
+			获取父框架,如果没有父框架,则相当于top
+		self:
+			相当于获取当前window自身,self 和 window 对象可以互换使用。
+
+		在使用框架的情况下,浏览器中会存在多个 Global 对象。在每个框架中定义的全局变量会自动成为框架中 window 对象的属性。由于每个 window 对象都包含原生类型的构造函数,因此每个框架都有一套自己的构造函数,这些构造函数一一对应,但并不相等。例如, top.Object 并不等于 top.frames[0].Object 。这个问题会影响到对跨框架传递的对象使用 instanceof 操作符。
+
+		3.打开新窗口 window.open()
+		window.open() 方法既可以导航到一个特定的 URL,也可以打开一个新的浏览器窗口
+		该方法可选参数有4个:
+			1): 要加载的 URL
+			2): 窗口目标		(frame名称,若有则在该frame中打开,若无则打开新的页面并将该frame命名为该值
+								也可以是下列任何一个特殊的窗口名称: _self 、 _parent 、 _top 或 _blank)
+			3): 描述页面特性的字符串 (详见)
+			4): 布尔值 (新页面是否取代浏览器历史记录中当前加载的页面,注意:只在不打开新窗口的情况下使用)
+		
+		window.open("https://www.baidu.com/","mainFrame")	//打开baidu页面
+		等效于:
+		<a href="http://www.baidu.com" target="mainFrame"></a>  //当点击链接的时候,浏览器会把指定的URL所指的文档装载进来,但不是在具有该链接的窗口中显示这个URL,而是在target的窗口中进行装载
+
+		open()方法中指定的窗口目标可以用作<a>,<map>,<form>中的target的值,这样可以告诉浏览器把链接激活,点击图像或者提交表单的结果显示在那里
+
+
+		window.open("https://www.baidu.com/","_blank","height=400,width=400,top=100,left=100,resizable=yes")
+		window.open() 打开的弹出窗口可以调用 top.close() 在不经用户允许的情况下关闭自己
+
+		4.间歇调用和超时调用
+			间歇调用setInterval():
+				var intervalId=setInterval(function(){
+					console.log('hello');
+				},1000)
+				clearInterval(intervalId);
+
+			超时调用setTimeout():
+				var timeoutId = setTimeout(function() {	//设置超时调用
+					alert("Hello world!");
+				}, 1000);
+				clearTimeout(timeoutId);				//取消超时调用
+
+		5.系统对话框
+			alert() 、 confirm() 和 prompt()调用系统对话框向用户显示消息
+			系统对话框与在浏览器中显示的网页没有关系,也不包含 HTML。它们的外观由操作系统及(或)浏览器设置决定,而不是由 CSS 决定。此外,通过这几个方法打开的对话框都是同步和模态的。也就是说,显示这些对话框的时候代码会停止执行,而关掉这些对话框后代码又会恢复执行。
+
+------------------------------------------------------------------------------------
+
+	2.location 对象
+	该对象提供了与当前窗口中加载的document文档相关的信息,还提供了一些导航功能,它将 URL 解析为独立的片段,让开发人员可以通过不同的属性访问这些片段。
+	location 对象是很特别的一个对象,因为它既是 window 对象的属性,也是document 对象的属性即
+	window.location===document.location		//true
+	location==window.location				//true
+
+	每次修改 location 的属性( hash 除外),页面都会以新 URL 重新加载。
+	
+	location.assign()  立即打开新 URL 并在浏览器的历史记录中生成一条记录
+		location.assign("http://www.baidu.com");
+		等同于:
+		window.location = "http://www.baidu.com"; 或
+		location.href = "http://www.baidu.com";
+
+	location.replace()	立即打开新的URL,但不会保留历史记录
+
+	location.reload();				//重新加载(有可能从缓存中加载)
+	location.reload(true);			//重新加载(从服务器重新加载)
+
+------------------------------------------------------------------------------------
+	3.navigator 对象
+	最早由 Netscape Navigator 2.0 引入的 navigator 对象,现在已经成为识别客户端浏览器的事实标准。所有支持 JavaScript 的浏览器所共有。
+
+	详细属性值见图片列表
+
+	检测插件:
+
+	注册处理程序:
+
+----------------------------------------------------------------------------------
+
+	4.screen 对象	
+	详细属性值见图片列表
+
+----------------------------------------------------------------------------------
+	5.history对象
+
+	history.back();		或者history.go(-1)  	//后退一页
+	history.forward();	或者history.go(1)		//前进一页
+	
+	也可以给 go() 方法传递一个字符串参数,此时浏览器会跳转到历史记录中包含该字符串的第一个位置——可能后退,也可能前进,具体要看哪个位置最近。如果历史记录中不包含该字符串,那么这个方法什么也不做,例如:
+	history.go("wrox.com");		//跳转到最近的 wrox.com 页面,如果没有该历史,则什么也不做
+
+===7. DOM =============================================================================
+DOM 由各种节点构成:
+
+	最基本的节点类型是 Node ,用于抽象地表示文档中一个独立的部分;所有其他类型都继承自Node 。
+	Document 类型表示整个文档,是一组分层节点的根节点。在 JavaScript 中, document 对象是Document 的一个实例。使用 document 对象,有很多种方式可以查询和取得节点。
+	Element 节点表示文档中的所有 HTML 或 XML 元素,可以用来操作这些元素的内容和特性。
+	另外还有一些节点类型,分别表示文本内容、注释、文档类型、CDATA 区域和文档片段
+	1.Node 类型:
+		DOM1 级定义了一个 Node 接口,该接口将由 DOM 中的所有节点类型实现。这个 Node 接口在JavaScript 中是作为 Node 类型实现的;除了 IE 之外,在其他所有浏览器中都可以访问到这个类型。JavaScript 中的所有节点类型都继承自 Node 类型,因此所有节点类型都共享着相同的基本属性和方法。
+		每个节点都有一个 nodeType 属性,用于表明节点的类型。节点类型由在 Node 类型中定义的12 个数值常量来表示,任何节点类型必居其一
+	 Node.ELEMENT_NODE (1);						
+	 Node.ATTRIBUTE_NODE (2);					
+	 Node.TEXT_NODE (3);						
+	 Node.CDATA_SECTION_NODE (4);				
+	 Node.ENTITY_REFERENCE_NODE (5);				
+	 Node.ENTITY_NODE (6);							
+	 Node.PROCESSING_INSTRUCTION_NODE (7);			
+	 Node.COMMENT_NODE (8);							
+	 Node.DOCUMENT_NODE (9);						
+	 Node.DOCUMENT_TYPE_NODE (10);					
+	 Node.DOCUMENT_FRAGMENT_NODE (11);					
+	 Node.NOTATION_NODE (12)。						
+
+
+
+
+
+	.执行script动态脚本
+		//传入要执行的script字符串
+		function loadScriptString(code){
+			var script = document.createElement("script");
+			script.type = "text/javascript";
+			try {
+				script.appendChild(document.createTextNode(code)); //标准的DOM文本节点方法,但IE不支持
+			} catch (ex){
+				script.text = code;			//兼容IE
+			}
+			document.body.appendChild(script);
+		}
+		以这种方式加载的代码会在全局作用域中执行,而且当脚本执行后将立即可用。实际上,这样执行代码与在全局作用域中把相同的字符串传递给 eval() 是一样的。
+
+		//传入要执行的js文件的路径
+		function loadScript(url){
+			var script = document.createElement("script");
+			script.type = "text/javascript";
+			script.src = url;
+			document.body.appendChild(script);
+		}
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
