@@ -1,0 +1,231 @@
+java网络编程精解
+
+	本书介绍的java网络编程都建立在tcp/ip协议基础上，致力于实现应用层。
+	传输层向应用层提供了套接字Socket接口，Socket封装了下层的数据传输细节，应用层的程序通过Socket来建立与远程主机的链接，以及进行数据传输。
+====1.网络基础============================================================================================================
+ip:
+
+	ip地址由两部分组成：IP网址和IP主机地址。
+	IP网址表示网络的地址，IP主机地址表示网络中的主机的地址。网络掩码用来确定IP地址中哪部分是网址，哪部分是主机地址。
+	网络掩码的形式与ip地址相同，但有一定的限制。网络掩码的二进制数序列中，前面部分都为1，后面部分都为0。把网络掩码与ip地址进行与操作，得到的结果就是ip网址。在多个网络互联的网络配置中，每个网络都有一个ip网址，网络与网络直接通过路由器进行链接
+	例如，一个公司可能拥有一个网址和多个主机。如果网址为192.166.0.0，为了更好地管理网络，可以把网络划分为多个子网。假设划分为192.166.0.1,192.166.0.2,192.166.0.3三个子网。这些子网的掩码都是255.255.255.0。
+	
+	如果一个主机同时属于两个以上的网络，它就可以拥有两个以上的ip地址。例如同一台主机会有Internet中的ip和局域网中的ip
+
+
+域名：
+
+	域名从右到左来表示其意义，最右边为顶级域，域名一般的命名方式为：机器名.单位名.网络名.顶层域名。例如mail.dafeiya.deu.cn
+
+TCP:
+	TCP协议使两台主机上的进程顺利通信，不必担心丢包或者包顺序错乱。TCP会跟踪包顺序，并且在包顺序混乱时按正确顺序重组包，如果丢包，TCP会请求源主机重新发包
+
+
+====2.Socket客户端============================================================================================================
+
+java中，有3中套接字类：
+	1.java.net.Socket				tcp
+	2.java.net.ServerSocket			tcp
+	3.java.net.DatagramSocket		udp
+
+	Socket作为客户端程序，其ip地址来自于客户程序所在的主机，而其端口由操作系统随机产生。在编写网络程序时，一般只需要显式地为服务器中的ServerSocket设置端口。
+	Socket对象中同时包含了远程度武器的ip地址和端口信息，以及客户本地的ip地址和端口信息。此外，从Socket对象中还可以获得输出流和输入流，分别用于向服务器发送数据，以及接收从服务器发来的数据。
+	Socket建立在TCP/IP协议的基础上，可以看作是通信链接两端的收发器，服务器与客户端通过Socket来收发数据，处理Socket的第一个不带参数的构造方法以外，其它构造方法都会试图建立与服务器的连接，如果链接成功，就返回Socket对象；如果失败，则抛出异常
+	一个客户端Socket只能建立一个链接
+
+
+
+1.设置超时时间：
+	//        当客户端SocketSocket构造方法请求与服务端建立链接时，可能要等待一段时间。
+	//        默认请求下，Socket构造方法会一直等待下去，直到成功或抛出异常，以下方式用于设定链接时间
+		Socket clientSocket=new Socket(); //创建一个无参Socket
+		SocketAddress socketAddress=new InetSocketAddress("127.0.0.1",8080);//建立地址信息
+		clientSocket.connect(socketAddress,5);
+
+2.设定服务器地址：InetAddress
+	//        InetAddress表示服务器的IP地址
+	        InetAddress address1=InetAddress.getLocalHost();//返回本地主机ip
+			System.out.println(address1);		//limeng-ThinkPad-T470p/127.0.1.1
+
+			InetAddress address2=InetAddress.getByName("www.baidu.com");//返回指定域名的ip
+			System.out.println(address2.getHostAddress());	//115.239.211.112
+
+3.设定客户端的地址：
+	在一个Socket对象中，既包含远程服务器的ip地址和端口信息，也包含本地客户端的ip地址和端口信息。
+	默认情况下，客户端的ip地址来自于客户程序所在的主机，客户端的端口则由操作系统随机分配。
+	Socket重载了两个构造方法用于显示地设置客户端的ip地址和端口
+	Socket(InetAddress address, int port, InetAddress localAddr, int localPort)
+
+	java ClientSocket 127.0.0.1 8080		//启动ClientSocket的main方法，并设定两个参数
+	public static void main(String[] args) {
+		String ip=agrs[0];
+		String port=args[1];			 
+	}
+
+4.Socket对象常用api：
+	getInetAddress():获取远程服务器的ip地址。
+	getPort():获取远程服务器的端口。
+	
+	getLocalAddress():获取本地的ip地址。
+	getLocalPort():获取本地的端口。
+	
+	getInputStream() / getOutputStrean() 获取输入输出流
+
+	isClosed():	判断当前Socket是否已经链接到远程主机并且还没有关闭。如果是则返回true
+	isConnected(): 判断Socket是否曾经连上过远程主机
+	isBound(): 判断Socket是否已经与一个本地端口绑定
+
+	boolean isConnected=clientSocket.isConnected() && !clientSocket.isClosed(); //判断socket当前是否处于链接状态
+
+5.常见异常：
+	1.UnknownHostException:
+		无法识别主机的名字或ip地址
+	2.ConnectionException:
+		没有服务器进行在监听指定的端口，或者服务器进程拒绝客户端的链接
+	3.SocketTimeException:
+		客户端建立链接超时	
+	4.BindException:
+		无法把Socket对象与指定的本地ip或端口进行绑定
+	5.SocketException:
+		通信时，发送方没有关闭Socket就突然停止程序，接收方在接收数据时会抛出该异常
+
+6.关闭Socket:
+	当客户与服务器的通信结束，应该及时关闭Socket，以释放Socket占用的包括端口在内的各种资源。Socket的close()方法负责关闭Socket。
+	为了确保关闭Socket的操作一定被执行，close()的操作应当放在finally代码块中。
+
+7.半关闭Socket：
+	进程A与进程B通过Socket通信，若A输出(OW)数据，B读入(IR)数据，进程A如何告诉进程B所有数据已经输出完毕呢？
+	
+	方式一：
+		若A与B交换的是字符流，并且都是一行一行地读/写数据时，可以事先约定一个特殊的标志作为结束标志。如约定"end"为结束标志，当进程A向B发送一行字符串"end",B读到这一行数据后，就停止读数据。
+	
+	方式二：
+		A先发送一个消息告诉B所发送的正文长度，然后再发送正文。B先获知A发送的正文的长度，然后只要读取完该成都的字符或者字节，就停止读数据
+	
+	方式三：
+		进程A发送完所有数据后，关闭Socket。
+		这样B读入了进程A所发送的所有数据后，再次执行输入流的read()方法时，该方法返回-1。若执行BufferedReader的readLine()则返回null。以此获悉已经达到了输入流的末尾。
+	
+	方式四：(重要)
+		方式三中调用close()方法关闭Socket时，输出流和输入流都会关闭。但有时候，可能仅仅希望关闭输出流或输入流之一，此时可以采用Socket提供的半关闭方法：
+		shutdownInout(): 只关闭输入流。
+		shutdownOutput(): 只关闭输出流。
+		假定A先向B发送一串字符，然后调用Socket的shutdownOutput()方法关闭输出流。接下来进程A不允许再输出(OW)数据，但仍可以通过输入流(IR)读入数据。而B在读入数据时，若A的输出流已关闭，B在读入所有数据后，就会读到输入流的末尾。
+		注意：先后调用Socket的shutdownInout(), shutdownOutput()方法，也仅仅只是关闭了输入流和输出流，并不等价于调用Socket的close()方法。
+
+8.Socket参数设置：
+	1.TCP_NODELAY:  noDelay,表示没有缓冲区延迟，立即发送数据。
+	2.SO_RESUSEADDR:  resuseAddr,表示是否允许重用Socket所绑定的本地地址。
+	3.SO_TIMEOUT: timeOut，表示接收数据时的等待超时时间
+	4.SO_LINGER: linger, 表示执行close()方法时，是否立即关闭底层的Socket
+	5.SO_SNFBUF: snfBuf, 表示发送数据的缓冲区大小
+	6.SO_RCVBUF: rcvBuf, 表示接收数据的缓冲区大小
+	7.SO_KEEPALIVE: keepLive, 表示对于长时间处于空闲状态的Socket，是否要自动把它关闭
+	8.OOBINLINE:     表示是否支持发送一个字节的TCP紧急数据
+
+9.服务类型设置：
+	类似于客户去邮局寄信，在选择发送普通信，挂号信或快件时，实际上是选择了邮局提供的不同的服务。发送普通信的价格最低，但发送速度慢，并且没有可靠性的保证。发送挂号信价格稍高，但可靠性有保证。发送快件的价格最高，发送速度最快，且可靠性有保证。
+	同理，在internet上传输数据也分不同的服务类型，它们有不同的定价。ip中规定了四种服务类信，用来定性地描述服务的质量：
+	1.低成本:发送成本底		(0x02)
+	2.高可靠性:保证把数据可靠地送达目的地		(0x04)
+	3.最高吞吐量:一次可以接收或发送大批量数据		(0x08)
+	4.传输数据的速度块:		(0x10)
+	
+	Socket类中提供了设置和读取服务类型的方法：
+		设置服务类型: socket.setTrafficClass(int trafficClass)
+		读取服务类型: getTrafficClass()
+	
+	这四种服务类型还可以进行组合，例如可以同时要求获得最高可靠性和最小延迟 (将多个服务类型值进行 位或运算)
+		Socket socket=new Socket("localhost",8080);
+		socket.setTrafficClass(0x04 | 0x10)
+		
+10. 设定连接时间、延迟和带宽的重要性权重:
+	Socket类提供了一个setPerformancePreferences(int connTime, int latency, int bandwidth)方法:
+	可以为这三个参数指标设定任何int值，这些整数之间的相对大小就决定了相应参数的相对重要性。
+	如socket.setPerformancePreferences(2,1,3); 表示最小延迟最重要，其次是最短连接时间，最后才是带宽
+
+
+====3.ServerSocket服务端===========================================================================================================
+ServerSocket:
+	在客户/服务器通信模式中，服务器端需要创建监听特定端口的ServerSocket，ServerSocket负责接收客户的链接请求。
+
+1.构造ServerSocket:
+	ServerSocket():
+	ServerSocket(int port):
+	ServerSocket(int port,int backlog):	参数backlog用于指定客户链接请求队列的长度
+	ServerSocket(int port,int backlog,InetAddree bindAddr): 参数bindAddr指定服务器要绑定的ip
+
+	1.1 绑定端口：
+	若无法绑定到指定端口时，会抛出BindException,它是IOExcepiton的子类，该异常一般是由以下原因造成的：
+		(1):端口已被占用
+		(2):在某些操作系统中，如果没有以超级用户的身份来运行服务器程序，那么OS不允许服务器绑定到1~1023之间的端口
+
+	设定客户连接请求队列的长度：
+	管理客户连接请求的任务是由操作系统来完成的，操作系统把这些连接请求存储在一个FIFO的队列中，许多操作限定了队列的最大长度，一般为50,(ubuntu16为12).当队列中的连接请求达到了队列的最大容量时，服务器进程所在的主机会拒绝新的连接请求,客户端Socket抛出ConnectionException异常。只有队列腾出空位时，队列才能继续加入新的连接请求。
+	对于客户端而言，当客户进程发出的连接请求被加入到服务器的队里中时，就意味着客户端与服务器的连接建立成功，进而服务器进程通过ServerSocket的accept()方法从队列中取出该连接，
+	ServerSocket构造方法的backlog参数用于显示地设置链接请求队列的长度，它将覆盖OS限定的最大长度。注意，当backlog参数小于或等于0，或者大于OS限定的队列最大长度时，仍然会采用OS设定的最大长度
+	
+	1.2 绑定ip地址：
+	如果主机只有一个ip地址，那么默认情况下，ServerSocket就与该ip地址绑定。
+	ServerSocket(int port,int backlog,InetAddress bindAddr) 构造方法中bindAddr用于指定服务器要绑定的ip地址，该构造方法适用于有多个ip地址的主机。
+	new ServerSocket(8080, 10,InetAddress.getByName("192.168.1.101"));
+	
+	1.3 接收和关闭与客户端的连接
+	ServerSocket的accept()方法从连接请求的队列中取出一个客户的连接请求，然后创建与客户连接的Socket对象，并将它返回。如果队列中没有连接请求，accept将一直等待，知道接收到了连接请求才返回。
+	当服务器郑州进行发送数据的操作时，如果客户端断开了连接，那么服务器端就会抛出一个IOException的子类SocketException异常。这只是服务器与单个客户通信中出现的异常，这种异常应该被捕获，使得服务器能够继续与其他客户通信。
+
+	1.4 关闭ServerSocket
+	调用close()方法，ServerSocket有个isClosed()方法用于判断是否关闭，而只有执行了ServerSocket的close()方法，才会返回true。即使ServerSocket还没有绑定端口，isClosed()方法依然会返回false。
+	isBound()方法判断ServerSocket是否曾经和一个端口绑定过，只要ServerSocket已经与一个端口绑定，即使它已经关闭，isBound()依然会返回true。如果需要缺东一个ServerSocket已经和特定端口绑定，并且还没有被关闭，可以采用以下方式：
+	boolean isOpen = serverSocket.isBound && !serverSocket.isClosed();
+
+2. ServerSocket常用api:
+	getInetAddress():     获取ServerSocket绑定的ip
+	getLocalPort():		  获取ServerSocket绑定的端口,构造ServerSocket时，端口设0，则由OS自动分配一个端口(称为匿名端口，一般仅用于临时程序的通信)
+	
+	ServerSocket设置选项：
+		1):SO_TIMEOUT:		  表示等待客户链接的超时时间，默认为0，表示永远不会超时。
+			当服务器执行ServerSocket的accept()方法时，如果连接请求队列为空，服务器就会一直等待，知道接收到了客户链接才从accept()方法返回。如果设定了超时时间，那么当服务器等待的时间超过了超时时间，就会跑出SocketTimeoutException，它是InternetException
+		2):SO_REUSEADDR:	  表示当ServerSocket关闭后是否允许其它应用立即重用该服务器所绑定的地址。默认值与OS类型有关
+			一般当ServerSocket关闭后，考虑到网络上仍然可能有数据向旧的ServerSocket传输数据，这个ServerSocket不会立即释放本地端口，而是会等待一段时间，确保接收到了网络上发送过来的延迟数据，然后再释放端口。
+			该设置必须在没有绑定到一个本地端口前调用，否则无效
+			if(!serverSocket.getResuseAddress()) serverSocket.setResuseAddress(true);
+		3):SO_RCVBUF:		  表示接收数据的缓冲区的大小。
+			表示用于接收数据的缓冲区的大小，以字节为单位。一般来说，传输大的连续的数据块(基于http或ftp协议的数据传输)可以使用较大的缓冲区，这样可以减少传输数据的次数从而提高传输数据的效率。而对于交互频繁且单次数据量比较小的通信(telnet和网络游戏)则应采用较小的缓冲区，确保能及时把小批量的数据发送给对方。
+			该参数的默认值与操作系统有关。例如Ubuntu16.04的服务端缓冲区大小默认为43690字节。设置大于64KB的缓冲区时要在绑定端口前调用才有效。执行serverSocket.setReceiveBufferSize()方法，相当于对所有由serverSocket.accept()方法返回的Socket设置接收数据的缓冲区的大小
+			 serverSocket.getReceiveBufferSize();
+
+3. 服务端的性能优化：
+	并发性能用于衡量一个服务器同时相应多个客户的能力。一个具有好的并发性能的服务器必须符合两个条件:
+	1:能同时接收并处理多个客户连接。
+	2:对于每个客户，都会迅速给予相应。
+	服务器能同时处理的客户链接数目越多，并且对每个客户作出响应的速度越快，就表明并发性能越高。
+
+	服务端性能优化历程：
+	1> 最初的单线程处理方式SocketServer接收到一个客户端链接，就与其进行通信，通信完毕以后断开链接，然后再接收下一个客户连接，假如同时有多个客户请求连接，这些客户就必须排队等候SocketServer的处理。socketServer无法同时与多个客户进行通信。
+		Socket socket=socketServer.accept();
+		//从Socket获取输入输出流，与客户端通信
+		socket.........
+	
+	2> 为每个客户分配一个线程:
+	服务器的主线程只负责接收客户的连接，每次接收到一个Socket连接，就创建一个工作线程，由它负责与客户的通信。
+		while(true){
+				Socket socket=serverSocket.accept();
+				Thread workThread=new Thread(new WorkHander(socket))	//新建WorkHander来处理socket的输入输出流
+				workThread.start();
+			}
+	
+	3> 创建线程池来管理工作线程:
+	上面这种实现方式中，对每个客户都分配一个新的工作线程，当工作线程与客户通信结束，这个线程就被销毁，这种实现方式有一些不足之处:
+		1.工作线程创建和销毁的开销很大，如果通信的客户端很多且每个客户的通信时间都很短，那么有可能创建线程的开销比实际与客户端通信的开销还大。
+		2.线程本身也消耗系统资源。每个线程本身大约需要1MB内存，如果大量客户连接服务器，就必须创建大量的工作线程，这会消耗大量的内存资源	   3.如果频繁创建和销毁线程将导致CPU频繁地调度切换要处理的线程，以使该线程获得运行的机会。此时线程之间的切换不再遵循系统的固定切换周期，切换线程的开销甚至比创建及销毁线程的开销还大。
+	为了解决该问题，线程池由此而生，线程池具有以下优点:
+		1.减少了创建和销毁线程的次数，提高了每个工作线程的重用性。
+		2.可以根据系统的承载能力，方便地调整整个线程池中的线程数目，防止因消耗过量的系统资源而导致系统崩溃。
+	JDK java.util.concurrent包中提供了现成的线程池的实现
+		
+
+
+
+
+

@@ -1,0 +1,57 @@
+===1.对象的序列化和反序列化================================================================================
+
+	当两个进程进行通信时，彼此可以发送各种类型的数据，如文本、图片、语音视频等。无论何种类型的数据，都会以二进制序列的形式在网络上进行传送。
+	当两个java进程进行远程通信时，一个进程能否把一个java对象发送给另一个进程呢？答案是肯定的。不过，发送方需要把这个java对象转换为字节序列才能在网络上传送；而接收方则需要把字节序列再恢复为java对象。
+	当程序运行时，程序所创建的各种对象都位于内存中，当程序运行结束时，这些对象就结束了声明周期
+	把java对象转换为自己序列的过程称为对象的序列化；把字节序列恢复为java对象的过程称为对象的反序列化。对象的序列化主要有两种用途:
+	1.把对象的字节序列永久地保存到硬盘上，通常存放在一个文件中。
+	2.在网络上传送对象的字节序列。
+
+===2.JDK中的序列化API=======================================================================================================
+2.1:
+	对象输出流:java.io.ObjectOutputStream> void writeObject(Object obj) 方法可以对指定java对象进行序列化，并把得到的字节序列写到一个目标输出流中。
+	对象输入流:java.io.ObjectInputStream>  Object readObject() 方法从一个源输入流中读取字节序列，并把这个序列反序列化成一个java对象返回。
+	
+	Serializable和Externalizable接口负责保存和恢复对象实例的内容。
+	只有实现了Serializable或Externalizable接口的类的对象才能被序列化，否则ObjectOutputStream的writeObject(Object obj)方法会抛出IOException。实现Serializable或者Externalizable接口的类也被称为可序列化类。
+	Externalizable接口继承自Serializable接口，实现Externalizable接口的类完全由自身来控制序列化的行为，而仅实现Serializable接口的类可以采用默认的序列化方式。JDK类库中的部分类(String类、包装类和Date类等)都已经实现了Serializable接口
+
+	当通过文件的方式进行序列化时，这个文件会保存对象的字节序列，但这种文件无法用普通的文本编辑器打开，这种文件中的数据只有ObjectInputStream类才能识别，并且能对其进行反序列化。在反序列化时并不会调用类的构造方法，而是直接根据它们的序列化数据在内存中创建新的对象。如果内存中对象所属的类没有被加载，那么会先加载并初始化这个类。如果在classpath中不存在相应的class文件，那么反序列化时抛出ClassNotFoundException
+	要注意的是，当序列化多个对象时，只要写入的对象是同一个，那么反序列化后得到的对象也是同一个。即==号判断为true
+	当要序列化的对象是外部类时，只需要实现Serializable和Externalizable接口即可，而作为内部类时有些差别
+
+
+2.2 序列化规则：
+	不能对transient和static修饰的成员变量进行序列化，反序列化时仅被初始化成相应类型的默认值。	
+	对于User implements Serializable 类，
+		1.如果仅实现了Serializable接口，那么按以下方式进行序列化及反序列化
+		(1.1):ObjectOutputStream采用默认的序列化方式，只对User对象的非transient的实例变量(非static)进行序列化
+		(1.2):ObjectInputStream采用默认的反序列化方式，对User对象的非transient的实例变量(非static)进行反序列化
+		
+		2.如果实现了Serializable接口，并且还定义了 readObject(ObjectInputStream in) 和writeObject(ObjectOutputStream out) 方法，那么将按照以下方式序列化及反序列化
+		(2.1):ObjectOutputStream会调用User的writeObject(ObjectOutputStream out)方法进行序列化ZZ
+		(2.2):ObjectInputStream会调用User的readObject(ObjectInputStream in)方法来进行反序列化
+	
+	对于User implements Externalizable接口，		
+		如果实现了Externalizable接口，那么User类必须实现readExternal(ObjectInput in)和writeExternal(ObjectOutput out)方法。
+		(3.1):ObjectOutputStream调用User的writeExternal(ObjectOutput out)方法来进行序列化
+		(3.2):ObjectInputStream先通过User的无参构造方法来创建一个User对象，然后调用它的readExternal(ObjectInput in)方法来进行反序列化
+		
+2.3 需要添加transient的情况：
+	任何不需要进行序列化的成员变量
+	1.实例变量并非对象的固有的内部数据，而只是具有一定逻辑意义的临时变量。
+	2.比较敏感的成员变量，如密码、口令等
+	3，
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,32 @@
+npm 
+
+npm config  set  registry http://10.112.13.156:8082/nexus/repository/npm
+npm install     根据package.json中的依赖配置自动下载依赖包
+npm run dev
+
+-g参数表示为全局
+
+npm init        //初始化项目
+
+npm install <package> [-g] 	//安装包
+npm install express@10.0.0  	//安装10.0.0版本的express包
+
+npm install -g sinopia		//初始化库
+
+npm install --save-dev webpack    //将webpack包添加到项目package.json的非必须的依赖配置中(项目运行时不再需要的依赖，如编译，打包之类的依赖)
+npm install --save-pro webpack    //将webpack包添加到项目package.json的必须的依赖配置中(项目运行时所必须的依赖)
+
+npm ls [-g] [--dept=0]  //查看当前目录或全局依赖包
+
+npm root [-g] 		//查看包的安装地址
+
+npm outdated		//查看当前过期依赖，current为当前版本，latest为包的最新版本，wanted为可以升级到不破坏当
+					前代码的最高版本
+npm ll <package>	//查看依赖包信息
+
+npm list -g --depth 0   //查看全局环境下已安装的包
+
+npm config ls			//查看npm的设置信息
+
+npm config set cache "D:\software\node\node_cache"   //设置缓存位置
+npm config set prefix "D:\software\node\node_repository"	//设置全局包存放位置

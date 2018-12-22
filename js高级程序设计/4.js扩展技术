@@ -202,6 +202,40 @@
 
 				设置了 ID 后, EventSource 对象会跟踪上一次触发的事件。如果连接断开,会向服务器发送一个包含名为 Last-Event-ID 的特殊 HTTP 头部的请求,以便服务器知道下一次该触发哪个事件。在多次连接的事件流中,这种机制可以确保浏览器以正确的顺序收到连接的数据段
 
+===关于Cookie============================================================================
+	HTTP Cookie,通常直接叫做 cookie,最初是在客户端用于存储会话信息的。
+	该标准要求服务器对任意 HTTP 请求发送 Set-Cookie HTTP 头作为响应的一部分,其中包含会话信息。
+	服务器响应的头可能如下:
+		HTTP/1.1 200 OK
+		Content-type: text/html
+		Set-Cookie: name=value				//key=value 形式的cookie,名称和值在传送时都必须是URL 编码的
+		Other-header: other-header-value
+	浏览器接收到带有该Set-Cookie请求头的报文后,会存储这样的会话信息,并在这之后,通过为每个请求添加 Cookie HTTP 头将信息发送回服务器,如下所示:	
+		GET /index.html HTTP/1.1
+		Cookie: name=value
+		Other-header: other-header-value
+	1.Cookie的限制:
+		cookie 在性质上是绑定在特定的域名下的。当设定了一个 cookie 后,再给创建它的域名发送请求时,都会包含这个 cookie。这个限制确保了储存在 cookie 中的信息只能让批准的接受者访问,而无法被其他域访问。
+		由于 cookie 是存在客户端计算机上的,还加入了一些限制确保 cookie 不会被恶意使用,同时不会占据太多磁盘空间。每个域的 cookie 总数是有限的,不过浏览器之间各有不同。为了最佳的浏览器兼容性,最好将整个 cookie 长度限制在 4095B(含 4095)以内
+
+	2.Cookie的构成:
+	Domain		Cookie 发送对象服务器的域名
+	Path		Cookie 发送对象 URL 的路径
+	Expires		Cookie 的有效期限。未指定则表示至浏览器关闭为止
+	Secure		仅在 SSL 加密的情况下发送 Cookie
+	HttpOnly	指定了此属性的 Cookie 不能被 JavaScript访问
+	
+	原则上不设置 Cookie 的 Domain 属性
+	指定 Cookie 的Secure属性是为了确保 Cookie 在 SSL 的情况下发送
+	应当时常给 Cookie 加上 HttpOnly 属性
+
+
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------
 
 
 
