@@ -1,0 +1,65 @@
+
+
+brctl show   网桥操作
+		虚拟网络接口卡是基于主机的物理网卡的虚拟网络接口。每一个主机可以有多个物理网卡，而每个物理网卡可以有多个虚拟机网络接口卡（虚拟网卡）。
+		虚拟网卡所基于的主机的物理网卡上会创建一个新的虚拟网卡和 MAC 地址。当虚拟机第一次启动时，libvirt 会为虚拟网卡分配一个 PCI 地址。这样，虚拟机就可以使用 MAC 地址和 PCI 地址（如 eth0）指定虚拟网卡。
+		为虚拟网卡分配新的 MAC 地址，然后虚拟网卡会被添加到网桥设备中。网桥将用来处理虚拟机和虚拟机网络的连接。
+
+	网络虚拟化
+	总体来讲，所谓的网络虚拟化在本文中指的是主机中的网络虚拟化，侧重于在一台物理主机中，分离出多个TCP/IP协议栈的意思。网络虚拟化可以独立实现，也可以依托别的技术实现。在Linux中，独立的网络虚拟化实现就是net namespace技术，依托别的技术实现的网络虚拟化就是虚拟机技术，我们当然知道，每个虚拟机里面都有自己的协议栈，而这种依托虚拟机技术实现的网络虚拟化可能还要更简单一些，因为宿主机并不需要去“实现”一个协议栈，而是把这个任务交给了虚拟机的操作系统来完成，宿主机“相信”虚拟机里面一定运行着一个拥有协议栈的操作系统
+	一块网卡就是一道门，一个接口，它上面一般接协议栈，下面一般接介质。
+
+	2016年10月8日）。
+	1、包含以下MAC地址的前8个字节（前3段）是虚拟网卡：
+		"00:05:69"; //vmware1
+		"00:0C:29"; //vmware2
+		"00:50:56"; //vmware3
+		"00:1c:14"; //vmware4
+		"00:1C:42"; //parallels1
+		"00:03:FF"; //microsoft virtual pc
+		"00:0F:4B"; //virtual iron 4
+		"00:16:3E"; //red hat xen , oracle vm , xen source, novell xen
+		"08:00:27"; //virtualbox
+	
+	ip link add可以创建多种类型的虚拟网络设备,设备类型如下
+		bridge - Ethernet Bridge device
+		can - Controller Area Network interface
+		dummy - Dummy network interface
+		ifb - Intermediate Functional Block device
+		ipoib - IP over Infiniband device
+		macvlan - Virtual interface base on link layer address (MAC)
+		vcan - Virtual Local CAN interface
+		veth - Virtual ethernet interface
+		vlan - 802.1q tagged virtual LAN interface
+		vxlan - Virtual eXtended LAN
+		ip6tnl - Virtual tunnel interface IPv4|IPv6 over IPv6
+		ipip - Virtual tunnel interface IPv4 over IPv4
+		sit - Virtual tunnel interface IPv6 over IPv4
+
+default via  默认网关
+dev 设备
+
+
+
+注意veth设备前面的ID，58:和59:，一对veth设备的ID是相差1的，并且系统内全局唯一。可以通过ID找到一个veth设备的对端。
+
+	HWaddr :网卡的硬件地址，即MAC地址
+	inet addr：IPv4的IP 地址
+	MTU:最大传输单元
+	Metric：用于计算路由的成本
+	RX：表示网络启动到现在的封包接受情况 (Receive)
+	packets:表示接包数
+	errors:表示接包发生错误的数量
+	dropped：表示丢弃的包数量
+	overruns:表示接收时因过速而丢失的数据包数
+	frame：表示发生frame错误而丢失的数据包数
+	TX：从网络启动到现在传送的情况 (Transmit)
+	collisions：冲突信息包的数目
+	txqueuelen：发送队列的大小
+	RX byte、TX byte:总传送/接受的量
+	注：由RX和TX可以了解网络是否非常繁忙
+	注：errors:0 dropped:0 overruns:0 frame:0，都为0 说明网络比较稳定
+	注：collisions发生太多次表示网络状况不太好
+
+iw wlp3s0 scan | grep SSID
+

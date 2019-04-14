@@ -28,7 +28,10 @@
 	# cd -  返回进入当前目录前的位置
    ls	   列出目录内容    -a -l
 
-   file   查看文件类型
+   file   查看文件类型,会显示字符集
+   iconv -f gbk -t utf-8  chinese.txt	对gbk编码的chinese.txt转为utf-8编码，并输出到标准输出
+		 -f 源文件的字符集；-t 要转化的字符集
+
    less   进入文件中查看文件内容
    more   一次一屏，分页显示。<space>查看下一屏，<b>查看上一屏幕   
    vi	  编辑文件

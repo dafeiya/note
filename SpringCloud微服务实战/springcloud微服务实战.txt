@@ -1,0 +1,371 @@
+springcloud 微服务实战
+==========================================================================
+1.常用配置
+
+1.1：
+spring.application.name=hello  用于指定应用名，并且在会被SpringCloud注册为服务名
+
+1.2：
+#properties文件中配置参数
+User.name=dafeiya	
+User.msg=myName is${User.name}
+//java中引用参数
+@Value("${User.name}")
+private String userName
+
+1.3:
+通过命令行修改参数
+java -jar --User.name=大肥鸭
+直接以命令行的方式设置User.name属性，改命令等价于在properties配置中添加User.name属性，且优先级高于配置文件
+通过这种方式，实际上已经使得应用的属性在启动之前是可变的。
+	
+1.4：
+配置的加载顺序
+***见图片***
+
+1.5通过actuator模块进行监控与管理
+添加依赖
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+测试是否引入成功
+http://localhost:8083/mappings    可查看actuator模块所有的映射
+
+可以通过配置关闭指定的端点，如endpoints.configprops.enabled=false关闭/configprops端点
+acturor中已经实现了一处理些请求的原生端点(uri的path),根据端点的作用，可以分为以下三大类	
+1.5.1.应用配置类，如程序中加载的配置，环境变量，bean创建等
+	/autoconfig		查看自动化的配置报告，该端点可以帮助我们分析一些自动化配置为什么没有生效的具体原因
+					positiveMatches返回的是条件匹配成功的自动化配置信息；negativeMatches返回的是条件匹配不成功的
+	/beans	查看应用上下文中创建的所有bean对象
+					bean:bean名称；scope：bean的作用域；type：bean的java类型；resource：class文件的具体路径；dependencies:依赖的bean
+	/configprops	获取应用中的配置的属性信息报告。
+	/env		获取所有可用的环境属性报告，包括环境变量、jvm属性、应用的配置属性、命令行中的参数。
+				其中敏感信息，password、key等会被***代替
+	/mappings		获取springMVC控制器的映射报告
+	
+1.5.2.度量指标类，提供了应用程序在运行时的一些快照信息，如内存、线程、http请求等的统计
+	/metrics		获取当前应用的各类重要的度量指标，包括内存、线程、GC等
+	/dump		获取程序运行中的线程信息
+	/trace		获取基本的http跟踪信息，默认情况下保留最近的100条请求记录
+	
+1.5.3.操作控制类，如提供了应用的关闭等功能
+	以上两种类型的所有端点是默认开启的，而该操作控制类是默认关闭的
+	/shutdown		关闭应用 需要通过endpoints.shutdown.enabled=true开启
+
+	变更端点的原始路径
+		有时候为了安全考虑，可能会修改端点的原始路径，如/health,这时可使用下面的配置
+		endpoints.health.path=/checkHealth
+		eureka.instance.healthCheckUrlPath=/${endpoints.health.path}	#使用相对路径
+		eureka.instance.healthCheckUrlPath=https://localost:8080/checkHealth	#绝对路径
+	
+------------------------------------2.SpringCloud Eureka注册中心--------------------------------------------------	
+1.SpringCloud Eureka基本概念：
+	SpringCloud Eureka是SpringCloud netflix微服务套件中的一部分，它基于Netflix Eureka做了二次封装，主要负责完成微服务架构中
+服务治理功能。SpringCloud为Eureka增加了SpringBoot风格的自动化配置。
+	服务治理是微服务架构中最为核心和基础的模块，它主要用来实现各个微服务实例的自动化注册和发现。
+	
+	服务注册：
+		在服务治理框架中，通常都会构建一个注册中心，每个服务单元向注册中心等级自己提供的服务，将主机、端口号、版本号、通信协议
+	等一系列信息告知注册中心，而注册中心按服务名来分类并组织成服务清单。服务中心还会以心跳的方式去检测清单中的是否可用，若不可
+	用则将其剔除
+	
+	服务发现：
+		对于服务治理框架下运作的服务实例，他们之间的调用不再通过指定具体的uri地址来实现，而是直接通过向服务名发钱请求调用来
+	实现。
+		过程如下：服务C想调用服务A,服务C就向注册中心Eureka发起咨询服务请求，Eureka将服务A的位置清单返回给C，当C要发钱调用时
+	，若A的位置只有一个则直接发起请求，若有多个就从这个清单中以某种轮询的策略(负载均衡)取出一个来进行服务调用。
+		实际情况下，框架为了性能等因素不会每次都向注册中心获取清单，而是增加了很多缓存来处理
+
+2.Eureka客户端与服务端		
+Netflix Eureka:
+	SpringCloud Eureka使用Netflix Eureka来实现服务注册与发现，它既包含了客户端组件，并且均采用java编写。并且Eureka提供了
+完备的Restful API,所以它也支持将非java语言构建的微服务应用纳入到Eureka的服务治理体系中来。只是在使用其它语言平台时，需要
+自己来实现Eureka的服务端程序。目前一些主流的开发平台上已有了一些针对Eureka的客户端框架，如.NET平台的Steeltoe、Nodejs的
+eureka-js-client等。
+	默认情况下，Eureka使用Jersey和XStream配合JSON作为Server和Client之间的通信协议，也支持自定义通信协议
+	
+	Eureka服务端：即注册中心。支持高可用集群配置，如果Eureka以集群模式部署，当集群中有某个注册中心的节点出现故障时，Eureka就会
+转入自我保护模式，它允许集群在某个节点故障期间继续提供服务的发现和注册，当故障的节点恢复时，集群中的其它节点会把它的状态再次同步回来。
+	pom添加依赖
+	@EnableEurekaServer  在注册中心的服务上添加该注解，标识当前项目为Eureka Server
+	eureka.instance.hostname=localhost
+	eureka.client.register-with-eureka=false	#禁止自己注册自己，单节点模式下关闭
+	eureka.client.fetch-registry=false		#禁止检索服务
+	eureka.server.enable-self-preservation=false  #测试时关闭自我保护机制，保证不可用服务及时踢出
+	eureka.client.service-url.defaultZone=http://localhost:1111/eureka/    #注册中心集群(相互注册)
+
+
+	Eureka客户端：主要处理服务的注册与发现。客户端服务通过注解和参数配置的方式，嵌入在客户端应用程序的代码中，当程序运行时，
+Eureka客户端向注册中心注册自身提供的服务并周期性地发送心跳来更新它的服务租约。同时，它也能从服务端查询当前注册的服务信息并把他们缓存到本地并周期性地刷新服务状态。
+	pom添加依赖
+	@EnableDiscoveryClient  在客户端项目上添加该注解，激活Eureka中的DiscoveryClient实现，标识该项目会向Eureka服务端注册
+	eureka.client.service-url.defaultZone=http://localhost:1111/eureka/,http://localhost:2222/eureka/ #指定注册地址，可以配多个
+	eureka.instance.prefer-ip-address=true		#使用ip而非主机名的方式向服务端注册
+	
+	
+	Eureka高可用：
+	Eureka的服务治理设计中，所有的节点即是服务提供方，也是服务消费方。对于服务注册中心也不例外。
+	eureka.client.register-with-eureka=true		
+	Eureka Server的高可用实际上就是将自己作为服务向其它服务注册中心注册自己，这样就可以形成一组互相注册的服务注册中心，以实现服务清单
+的互相同步，达到高可用的效果
+
+	regist1 localhost:1111 server
+	eureka.client.register-with-eureka=true
+	eureka.client.fetch-registry=true
+	eureka.client.service-url.defaultZone=http://localhost:2222/eureka/		#regist1注册到regist2
+	
+	regist2 localhost:2222 server
+	eureka.client.register-with-eureka=true
+	eureka.client.fetch-registry=true
+	eureka.client.service-url.defaultZone=http://localhost:1111/eureka/		#regist2注册到regist1
+	
+	client localhost:8080 client
+	eureka.client.service-url.defaultZone=http://localhost:1111/eureka/,http://localhost:2222/eureka/
+	
+3.服务发现与消费
+	服务发现的任务有Eureka客户端完成，而服务消费的任务由Ribbon完成
+	Ribbon是一个基于Http和tcp的客户端均衡器，它可以在通过客户端中配置的ribbonServerList服务端列表去轮询访问以达到负载均衡
+的作用。它在Eureka服务发现的基础上，实现了一套对服务实例的选择策略，从而实现对服务的消费。
+	
+	
+	ribbon。。。。。。。。。。
+	Region和zone 一对多关系，Zone能设置多个
+	
+	
+4.服务治理机制：
+	*服务提供者
+		》服务注册与下线：
+		服务提供者在启动时会通过发送REST请求的方式将自己注册到Eureka Server上，同时带上了自身服务的一些元数据信息。
+	EurekaServer接收到这个REST请求后，将元数据信息存储在一个双层结构的Map中，其中第一层key是服务名，第二次的key是具体服务的
+	实例名。
+		》服务同步：
+		》服务续约：
+	*服务消费者
+		》获取服务
+		》服务调用
+		》服务下线：
+		当服务关闭期间，Eureka客户端程序在服务实例进行正常关闭操作时，会触发一个服务下线的REST请求给Eureka Server。服务端
+	在接收到请求之后，将该服务状态置为下线(DOWN)，并把该下线事件传播出去
+	*服务注册中心
+		》失效剔除:
+		当服务实例因非正常原因下线，如OOM,网络故障等，服务注册中心就无法收到服务下线的请求。为了从服务列表中将这些无法提供
+	服务的实例剔除，Eureka Server在启动的时候会创建一个定时任务，默认每隔一段时间(60s)将当前清单中超时(90s)没有续约的服务
+	剔除出去
+		》自我保护：
+			Eureka的自我保护机制主要用于减少在网络分区获取不稳定状态下的不一致性问题
+				Eureka在运行期间会统计心跳失败的比例，在15分钟内是否低于85%，如果出现了低于的情况，Eureka Server会将当前的
+			实例注册信息保护起来，同时提示一个警告。(EMERCENCY!.......JUST TO BE SAFE)
+			一旦进入保护模式，Eureka Server会尝试保护其服务注册表中的信息，不再删除
+			服务注册表中的数据，也不会注销任何服务
+				当发生网络分区的时候，Eureka Server和client的通信被终止，server端收不到大部分的client续约，这时如果直接将没有
+			收到心跳的client端自动剔除，那么会将可能仍然可用的client端剔除，这不符合AP理论，所以Eureka宁可保留也许已经宕机了
+			的client端，也不愿意将可以用的client端一起剔除，从这一点保证了Eureka程序的健壮性，符合AP理论。
+
+5.配置详解：
+	*Eureka客户端的配置主要有两方面：
+		1.服务注册相关的配置信息，包括服务注册中心的地址、服务获取的间隔时间、可用区域等。
+		2.服务实例相关的配置信息，包括服务实例的名称、IP地址、端口号、健康检查路径等。
+		****具体配置见图片****
+	*Eureka服务端类似于一个现成的产品，大多数情况下我们不需要修改它的配置信息	
+
+	
+====SpringCloud Ribbon负载均衡器===========================================================================
+SpringCloud Ribbon：
+	一个基于http和tcp的客户端的用于负载均衡的工具类框架，它是基于Netflix Ribbon实现，并进行了封装。它不需要像注册中心、配置中心那样
+需要独立部署，但是它几乎存在于每一个SpringCloud构建的微服务程序和基础设施中。
+	用于将请求自动转换成客户端均衡的服务调用。
+
+	*负载均衡
+		负载均衡在系统架构中是一个非常重要，并且不得不去实施的内容。因为负载均衡是对系统的高可用、网络压力的缓解和处理能力进行扩容
+	的重要手段之一。我们常说的负载均衡都指服务端的负载均衡，其中分为硬件和软件负载均衡。硬件负载主要是通过在服务器节点之间安装专门
+	用于负载均衡的设备，比如F5等，而软件负载均衡则是通过在服务器上安装一些具有负载功能的软件来完成请求的分发，比如nginx等。
+		负载均衡功能的模块通常都会维护一个下挂可用的服务端清单，通过心跳检测来剔除故障的服务端节点以保证清单中都是可以正常访问的服
+	务端节点。当客户端发送请求到负载均衡设备的时候，该设备按某种算法(比如线性轮询、按权重负载、按流量负载等)从维护的可用服务端清单
+	中取出一台服务端地址，然后进行转发。
+	*SpringCloud客户端负载均衡
+		客户端负载均衡与服务端负载均衡最大的不同点在于上面所提到的服务清单所存储的位置。在客户端负载均衡中，所有客户端节点都维护
+	着自己要访问的服务端清单，而这些服务端的清单来自于服务注册中心。客户端负载均衡也需要心跳去维护服务端清单的健康性，只是这个步骤
+	要同注册中心配合完成。在SpringCloud实现的服务治理框架中，默认会创建针对各个服务治理框架的Ribbon自动化整合配置，比如Eureka中的
+	RibbonEurekaAutoConfiguration/RibbonConsulAutoConfiguration.
+		通过SpringCloudRibbon的封装，我们在微服务架构中使用客户端负载均衡调用非常简单,只需要以下两步：
+		1.服务提供者启动多个服务实例并注册到一个注册中心或是多个相关联的注册中心
+		2.服务消费者通过调用被@LoadBalanced注解修饰过的RestTemplate来实现面向服务的接口调用,在启动类中加入以下代码
+			@Bean
+			@LoadBalanced
+			public RestTemplate restTemplate() {
+				return new RestTemplate();
+			}
+	*重试机制
+		SpringCloud Eureka实现的服务治理机制强调CAP原理中的AP，即可用性与可靠性，它与Zookeeper这类强调CP(一致性、可靠性)的服务治理
+	框架最大的区别就算：Eureka为了实现更高的服务可用性，牺牲了一定的一致性，在极端情况下它宁愿接受故障实例也不愿丢掉可能"健康"的
+	实例。比如当注册中心的网络发生故障断开时，由于所有的服务实例无法维持续约心跳，在强调AP的服务治理中将会把所有服务实例都剔除掉，
+	而Eureka则会因为超过85%的实例丢失心跳而触发保护机制，注册中心将会保留此时的所有节点，以实现服务间依然可以进行互相调用的场景，
+	即使其中有部分故障节点，但这样做依然可以继续保障大多数的服务正常消费。
+	
+			
+====SpringCloud Hystrix熔断器===========================================================================
+	引入依赖：<artifactId>spring-cloud-starter-hystrix</artifactId>
+	在启动类上使用@EnableCircuitBreaker注解开启断路器功能。
+	
+
+
+
+====SpringCloud Zuul网关===========================================================================
+	引入依赖：<artifactId>spring-cloud-starter-zuul</artifactId>
+	添加@EnableZuulProxy注解
+	添加@SpringCloudApplication注解，该注解相当于@SpringBootApplication/@EnableDiscoveryClient/@EnableCircuitBreaker三个注解
+	
+	*面向服务的路由配置
+		Zuul实现率与Eureka的无缝整合，可以让路由的path不是映射具体的url，而是让它映射到某个具体的服务实例，而具体的url则交给Eureka
+	的服务发现机制去自动维护，我们称这类路由是面向服务的路由。
+		ebiz-webapps/emgt-mgmt相当于给这个映射规则自定义名称，一般是用系统的部署环境-服务名来命名。
+		zuul.routes.ebiz-webapp.path=/ebiz/webapp/**		
+		zuul.routes.ebiz-webapp.service-id=webapp
+		
+		zuul.routes.emgt-mgmt.path=/emgt/mgmt/**
+		zuul.routes.emgt-mgmt.service-id=mgmt
+
+		以上路由规则会将所有符合/ebiz/webapp/**的请求转发到webapp的服务实例上，然后从Eureka维护的列表中拿取webapp服务的具体地址。
+		通过面向服务的路由配置方式，我们只需要定义path和serviceId的映射组合，不再需要为每个路由维护服务应用的具体实例的位置，完美
+		地解决了对路由映射实例的维护问题。
+	*过滤器
+		一大堆过滤器
+	*动态加载
+		微服务架构中，由于API网关服务担负着外部访问统一入口的重任，它同其他应用不同，任何关闭和重启操作都会使整个微服务系统对外
+	的服务体质，这种情况是很难以接受的。所以，作为最外部的网关，它必须具备动态更新内部逻辑能力，比如动态修改路由规则和添加或删除
+	过滤器。
+
+====SpringCloud Config配置中心===========================================================================
+	SpringCloud Config是SpringCloud团队创建的一个全新项目，用来为分布式系统中的基础设施和微服务应用提供集中化的外部配置支持，它
+分为服务端和客户端两个部分，其中服务端也成为分布式配置中心，它是一个独立的微服务应用，用来链接配置仓库并为客户端提供信息、加密/解密
+信息等访问接口。客户端则是微服务架构中的各个微服务应用或基础设施，它们通过指定的配置中心来管理应用资源与业务相关的配置内容，并在
+启动的时候从配置中心获取和加载配置信息。SpringCloud Config实现了对服务端和客户端中环境变量和属性配置的抽象映射，所以它处理适用于
+Spring构建的应用程序之外，也可以在任何其它语言运行的应用程序中使用。由于SpringCloud Config实现的配置中心默认采用Git来存储配置信息，
+所以使用SpringCloud Config构建的配置服务器，天然就支持对微服务应用配置信息的版本管理，并可以通过Git客户端工具来方便地管理访问配置
+内容。当然也提供了对其它存储方式的支持，如SVN/本地化文件系统。
+
+====SpringCloud Bus消息总线===========================================================================
+	SpringCloud作为微服务架构的综合性的解决方案，提供了消息总线的解决方案支持。
+
+	*消息代理(Message Broker)
+	消息代理是一种消息验证、传输、路由的架构模式。它在应用程序之间起到通信调度并最小化应用之间的依赖的作用。使得应用程序可以高效地
+解耦通信过程。消息代理是一个中间件产品，核心是一个消息的路由程序，用来实现接收和分发消息，并根据设定好的消息处理流程来转发给正确的
+应用。它包括独立的通信和消息协议，能够实现组织内部和组织间的网络通信。
+	SpringCloud Bus默认采用RabbitMQ作为消息队列的实现，同时也支持Kafka的实现
+	
+----RabbitMQ:------------------------------------------------------------------------------
+	RabbitMQ以AMQP协议实现，所以它支持多种OS,编程语言，几乎可以覆盖所有主流的企业级技术平台。
+	
+RabbitMQ基本概念：
+	Broker:可以理解为消息队列服务器的实体
+		它是一个中间件应用，负责接受消息生产者的消息，然后将消息发送至消息接收者或者其它Broker。
+	Exchange:消息交换机
+		是消息第一个到达的地方，消息通过它指定的路由规则，分发到不同的消息队列中去。
+	Queue:消息队列
+		消息通过发送和路由之后最终到达的地方，到达Queue的消息即进入逻辑上等待消费的状态。每个消息都会被发送到一个或多个队列。
+	Binding:绑定，
+		它的作用就算把Exchange和Queue按照路由规则绑定起来，也就是Exchange和Queue之间的虚拟连接
+	Routing Key：路由关键字
+		Exchange根据这个关键字进行消息投递
+	Virtual Host:虚拟主机
+		它是对Broker的虚拟划分，将消费者、生产者和他们依赖的AMQP相关结构进行隔离，一般都是为了安全考虑。比如对不同用户进行权限控制
+	Connection:连接
+		代表生产者、消费者、Broker之间进行通信的物理网络。
+	Channel：消息通道
+		用于链接生产者和消费者的逻辑结构。在客户端的每个连接里，可以建立多个Channel,每个Channel代表一个回话任务，通过Channel可以
+	隔离同一个连接中的不同交互内容。
+	Producer:消息生产者
+		制造消息并发送消息的程序。
+	Consumer:消息消费者，接受消息并处理消息的程序	
+	
+消息投递到队列的整个过程大致如下：
+	1.客户端链接到消息队列服务器，打开一个Channel
+	2.客户端声明一个Exchange,并设置相关属性。
+	3.客户端声明一个Queue,并设置相关属性。
+	4.客户端使用Routing Key，在Exchange和Queue之间建立好绑定关系。
+	5.客户端投递消息到Exchange
+	6.Exchange接收到消息后，根据消息的Key和已经设置的Binding，进行消息路由，将消息投递到一个或多个Queue里
+
+	
+====SpringCloud Stream消息驱动===========================================================================
+	
+	
+	
+====SpringCloud Sleuth服务跟踪===========================================================================
+	
+	
+	
+	
+======其它=========================================================================
+强一致性：
+		这种级别的一致性最符合用户的直觉，它要求系统写入什么，读出来的也会是什么，用户体现好，但实现起来往往对性能影响大
+	弱一致性：
+		这种一致性级别约束了系统在写入成功后，不承诺立即可以独到写入的值，也不承诺多久之后数据能够达到一致，但会尽可能地保证
+	到某个时间级别(比如秒级别后)，数据能够达到一致状态。
+	最终一致性：
+		最终一致性是弱一致性的一个特例，系统会保证在一定时间内，能够达到一个数据一致性的状态。这里之所以将最终一致性单独提出来
+	是因为它是弱一致性中非常推崇的一种一致性模型，也是业界在大型分布式系统的数据一致性上比较推崇的模型。
+
+CAP理论：	
+	CAP原则又被成为CAP定理，指在一个分布式系统中，Consistency(一致性)、Avaliablility(可用性)、Partition toterance(分区容错性)
+三者不可得兼。
+	一致性(C):
+		处于分布式系统中的每一个节点的数据备份，在同一时刻是否是同样的值，即等同于所有节点访问同一份最新数据的副本
+	可用性(A):
+		在集群中一部分几点故障后，集群整体是否还能响应客户端的读写请求。即对数据的更新具备高可用性
+	分区容错性(P):
+		以实际效果而言，分区相当于对通信的时限要求。系统如果不能在时限内达成数据一致性，就意味着发送了分区的情况，这时必须
+	就当前操作在C/A之间做出选择。
+	
+BASE理论：
+	BASE是Basically Avaliable(基本可用)、Soft state(软状态)以及Eventually consistent(最终一致性)三个短语的缩写，BASE理论是对
+CAP理论中一致性和可用性权衡的结果，其来源于对大规模互联网系统分布式实践的总结，是基于CAP理论逐步演化来的。
+	BASE理论的核心思想是：即使无法做到强一致性，但每个应用都可以根据自身业务特点，采用适当的方式来使系统达到最终一致性。
+	BASE三要素：
+		1.基本可用：允许损失部分可用性，但绝不等价于系统不可用
+			响应时间变慢
+			系统功能上略有损失
+		2.软状态：
+			软状态指允许系统中的数据存在中间状态，并认为该中间状态的存在不会影响系统的整体可用性，即允许系统在不同节点的数据副本
+		之间进行数据同步的过程存在延时
+		3.最终一致性：	
+			最终一致性强调的是所有的数据副本，在经过一段时间的同步后，最终都能达到一个一致的状态。因此，最终一致性的本质是需要
+		系统保证最终数据能够达到一致，而不需要实时保证系统数据的强一致性。
+	总的来说，BASE理论面向的是大型高可用可扩展的分布式系统，和传统失误ACID的特性是相反的，它完全不同于ACID的强一致性模型，而是
+	通过牺牲强一致性来获得可用性，并允许数据在一段时间内是不一致的，但最终会达到一致性状态。同时，实际的分布式场景中，不同业务
+	单元和组件对数据一致性的要求是不同的，隐藏ACID特性和BASE理论往往又结合到一起应用。
+	
+		
+			
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
