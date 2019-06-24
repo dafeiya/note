@@ -2,8 +2,33 @@
 
 =================================================================================================
 一.shell基础及工具篇
-	1.export展示环境变量
-		export、env、set、declare的区别：
+	1.环境变量：
+		export、env、set、declare四个命令都与环境变了有关
+		shell的变量可以分为"环境变量"和"自定义变量"两种类型，两者的区别在于作用范围不同，环境变量可以在其进程的子进程中继续有效，而自定义变量的作用范围则无法延伸到其进程的子进程中。
+		环境变量的命令比较:
+			env:		显示当前用户的环境变量，但不会显示其自定义变量。
+			export:		功能同env一样，也是显示当前用户的环境变量，只不过该命令的输出是按照变量名进行排序的。
+			declare:	显示当前shell中定义的所有变量，包括用户的环境变量和自定义变量，该命令的输出按变量名进行排序
+			set:		功能同declare一样，显示当前Shell中定义的所有变量，包括用户的环境变量和自定义变量
+		env和export显示的是环境变量，环境变量可以在其进程及其子进程中继续有效
+		set和declare显示的是环境变量和自定义变量。set和declare的输出几乎是一样的，唯一的区别是"下划线变量"。下划线变量(_)表示用户上一次输入的命令的最后一个参数。上面两个命令之所以出现不同，是因为在执行set前执行了clear命令，而在执行declare之前，执行了set命令
+		
+		PATH变量
+			echo $PATH
+			/home/limeng/bin:/home/limeng/.local/bin:/home/limeng/software/jdk/jdk1.8.0_191/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local
+			用好PATH变量可以大大提升工作效率，
+			export PATH=$PATH:/home/limeng/tools	追加自己的路径到$PATH变量中去，这样使用tools中的应用时就不需要指定全路径了
+	
+	2.read,倾听是种美德
+		
+
+
+
+
+
+
+		
+			
 		
 		
 

@@ -1,0 +1,53 @@
+杀进程
+select sid,serial#
+from v$session t
+where t.SID in (select session_id
+from v$locked_object);
+
+alter system kill session '5152,18383';
+
+解锁用户
+alter user 用户名 account unlock;
+
+修改用户密码
+alter user 用户名 identified by 密码;
+
+修改表名
+
+
+修改字段名
+alter table ECOS_O2O_BRANCH_CODE rename column BRANCH_ID to bank_code
+
+修改数据类型
+alter table ECOS_O2O_BRANCH_CODE modify DEL_FLAG char(1);
+
+查看表空间
+select * from dba_tablespaces;
+
+导出数据库数据
+exp stqhy/stqhy@10.129.28.136:1521/STQHYDB_s file=/home/ebank/emm/sql/uatbeifen/uat.dmp
+exp emmsuser/STQHY1234@10.129.13.103:1521/EMMSDB1_s file=/home/ebank/emm/sql/relbeifen/rel.dmp
+
+导入数据库数据
+imp emmsuser/emmsuser@10.129.28.136:1521/emmsuser_s file=/home/ebank/emm/sql/uatbeifen/uat.dmp full=y
+
+授查询权限给vlog用户
+select 'grant select on '|| table_name|| ' to VLOG;' from user_tables;
+select 'grant select on '||sequence_name||' to VLOG;' from user_sequences;
+
+查看数据库配置
+select * from dba_profiles;
+设置登录失败次数为无限次
+alter profile default limit failed_login_attempts unlimited ;
+
+删表恢复
+flashback table ECOS_PAYGATE_FLOW to before drop ;
+
+删表数据恢复
+alter table ECOS_PAYGATE_FLOW enable row movement ;
+flashback table ECOS_PAYGATE_FLOW to timestamp
+to_timestamp('2018-09-07 17:30:00','yyyy-mm-dd hh24:mi:ss');
+
+删除当前文件夹2天之前的所有文件
+find . -mtime +2 -exec rm -rf {} \;
+
