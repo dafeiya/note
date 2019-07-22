@@ -356,8 +356,20 @@ vim常用的正则表达式整理  :s/正则表达式/替换字符串/选项   swap，替换
 	空格,选择交换文件
 
 
-=====================NREDTree============================================
+=====================vundle============================================
+Vundle 是 Vim bundle 的简称,是一个 Vim 插件管理器
+1.将想要安装的插件，按照地址填写方法，将地址填写在vundle#begin和vundle#end之间即可
+	(1) 运行 vim ,再运行 :PluginInstall
+		$vim
+		:PlugInstall
+	(2) 通过命令行直接安装 vim +PluginInstall +qall
+		vim +PluginInstall +qall
 
+
+
+
+=====================NREDTree============================================
+F2					关闭/打开目录
 o					打开或者关闭(目录或文件)
 O					递归地打开当前目录下的所有目录
 
@@ -387,4 +399,48 @@ R					递归地刷新根目录
 I					切换是否显示隐藏文件
 
 q			        关闭 NerdTree 窗口
+
+=====================jedi-vim============================================
+tab					自动匹配代码
+一下为默认情况下的快捷键：
+	1.默认设置下，插入模式下按 <Ctrl-Space> 会触发jedi-vim的自动补齐，输入 . 时也会自动触发自动补齐提醒。
+	2.可以使用 let g:jedi#completions_command = "<C-N>" 设置 <Ctrl-n>(同时按下Ctrl和n键) 组合键用于触发jedi-vim的自动补齐功能。
+	3.Goto assignments: <leader>g (typical goto function)
+	4.跳转到定义： <leader>d
+		CTRL+o, 向后跳. CTRL+i 向前跳
+	5.显示Python文档(Pydoc)： K
+	6.重命名：<leader>r
+	7.展示某个变量的使用方法：<leader>n (shows all the usages of a name)
+	8.打开某个模块：:Pyimport os (打开 os 模块)
+注：<leader> 表示Vim的leader键，默认为 \。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -167,3 +167,19 @@ Type=Application
 Categories=Development;
 EOL
 
+==============================必备程序===================================
+aptitude		自动解决依赖
+sudo aptitude install r-base-core
+
+
+
+
+
+
+
+
+
+
+
+
+

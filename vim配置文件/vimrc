@@ -1,13 +1,28 @@
+" 开启Vundle插件管理工具
+set nocompatible              "  必需
+filetype off                  " 必需
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+Plugin 'VundleVim/Vundle.vi'
+Bundle 'davidhalter/jedi-vim'
+Bundle 'ervandew/supertab'
+call vundle#end()            " required
+filetype plugin indent on    " required
+let g:SuperTabDefaultCompletionType = "context"
+let g:jedi#popup_on_dot = 0
+
+
 colorscheme mystyle
 
-":map <C-F11> :w!<CR><Esc>:!python %<CR> " 设置python脚本的一键执行
-
 " NERDTree树形结构配置	
- autocmd vimenter * NERDTree		" 自动开启NERDTree
-" " F2开关树形结构
- map <F2> :NERDTreeToggle<CR>    
+autocmd vimenter * NERDTree	" 自动开启NERDTree
+" F2开关树形结构
+map <F2> :NERDTreeToggle<CR>    
 "  没有窗口时自动退出树形结构
- autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") &&b:NERDTreeType == "primary") | q | endif
+autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") &&b:NERDTreeType == "primary") | q | endif
+
+
+" vim基本设置
 set nocompatible " 关闭 vi 兼容模式
 
 syntax on " 自动语法高亮
