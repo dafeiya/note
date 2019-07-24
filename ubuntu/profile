@@ -1,0 +1,46 @@
+# /etc/profile: system-wide .profile file for the Bourne shell (sh(1))
+# and Bourne compatible shells (bash(1), ksh(1), ash(1), ...).
+
+if [ "$PS1" ]; then
+  if [ "$BASH" ] && [ "$BASH" != "/bin/sh" ]; then
+    # The file bash.bashrc already sets the default PS1.
+    # PS1='\h:\w\$ '
+    if [ -f /etc/bash.bashrc ]; then
+      . /etc/bash.bashrc
+    fi
+  else
+    if [ "`id -u`" -eq 0 ]; then
+      PS1='# '
+    else
+      PS1='$ '
+    fi
+  fi
+fi
+
+if [ -d /etc/profile.d ]; then
+  for i in /etc/profile.d/*.sh; do
+    if [ -r $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi
+
+
+#jdk1.8
+export JAVA_HOME=~/software/jdk/jdk1.8.0_191
+export JRE_HOME=${JAVA_HOME}/jre    
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib    
+export PATH=${JAVA_HOME}/bin:$PATH 
+
+#maven3.6.0
+export M2_HOME=~/software/maven/apache-maven-3.6.0
+export CLASSPATH=$CLASSPATH:$M2_HOME/lib
+export PATH=$PATH:$M2_HOME/bin
+
+#ruby2.2
+export RUBY_HOME=~/software/ruby/ruby-2.4.5
+export CLASSPATH=$CLASSPATH:$RUBY_HOME/lib
+export PATH=$PATH:$RUBY_HOME/bin
+#shell line
+PS1='\[\033[1;36m\]@\u:\w-\$ '
