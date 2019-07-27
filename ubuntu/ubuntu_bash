@@ -178,14 +178,16 @@ tmux系统操作:
 	?				列出所有快捷键；按q返回
 	
 tmux窗口操作：
-	Ctrl+b "		 水平分割标签
-	Ctrl+b %		 竖直分割标签
-	Ctrl+b 方向键	 选择标签
+" -> |		 水平分割标签
+% -> -		 竖直分割标签
+方向键	 选择标签
 
-	Ctrl+b+方向键	 调整标签大小
-	Ctrl+b c		 创建一个新窗口
-	Ctrl+b n		 转到下一个 next 窗口
-	Ctrl+b p		 转到之前的 previous 窗口
+<leader>+方向键	 调整标签大小
+c		 创建一个新窗口
+n		 转到下一个 next 窗口
+p		 转到之前的 previous 窗口
+<C>+o	 顺时针旋转当前window中的panel
+
 
 : a -d				去掉小圆点
 : source-file /etc/tmux.conf	tmux中重新加载配置文件
