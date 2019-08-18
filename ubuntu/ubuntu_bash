@@ -33,6 +33,7 @@ apropos  subject	查看与某个主题相关的命令列表
 
 sudo nautilus ./.m2/repository/    打开该目录的图形化界面
 
+dconf reset -f /
 
 ln -s ~/nodejs/bin/node /usr/local/bin/    使用软连接讲该命令创建为全局命令.创建时必须使用绝对路径
 ==================权限管理======================================
