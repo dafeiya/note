@@ -1,4 +1,6 @@
 WPF开发基础
+    Windows Presentation Foundation (WPF) 是一个可创建桌面客户端应用程序的 UI 框架。它是 .NET Framework的子集，WPF使用可扩展应用程序标记语言 (XAML) 
+为应用程序编程提供声明性模型
 
 XAML:
     XAML是扩展应用标记语言的简写，(发音 zen mel)，是一种用于实例化.net应用的标记语言。主要用于构建WPF的用户界面。
