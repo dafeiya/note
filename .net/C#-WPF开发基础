@@ -26,15 +26,72 @@ WPF的布局：
         5.布局并非由布局元素决定整体结构，但内部元素也可以设置自身相对于布局容器的位置
      WPF常用布局容器：
         1.StackPanel堆栈面板：
-            最简单的布局容器，StackPanel面板可以在单行或者单列中以堆栈的形式放置内部的子元素
+            最简单的布局容器，StackPanel面板可以在单行或者单列中以堆栈的形式放置内部的子元素，超出容器范围的内部元素会被遮蔽
             Orientation属性设置内部元素的竖直或水平排列方式；
             内部元素的HorizontalAlignment属性可以设置内部元素相对于容器的位置；
             Border元素：Border元素并非布局元素，但常与面板布局控件一起使用，Border元素只能包含一个嵌套的布局内容，通常是布局面板，Boder用于为面板添加背景
                 或者在其周围添加边框。
                 CornerRadius属性设置边角的圆滑度；BorderThickness属性设置边框的宽度；Padding设置边框内侧和内部面板的间距；Background设置背景
         2.WrapPanel面板和DockPanel面板：
-            这两个布局容器通过不同的布局行为对StackPanel面板进行补充
-            WrapPanel在可允许的空间中一次以一行或者一列的方式布局控件
+            这两个布局容器与StackPanel性质类似，但扩展了一些特性作为对StackPanel面板进行补充
+            WrapPanel:
+            DockerPanel:  
+                为内部元素提供了DockPanel.Dock附加属性设置元素相对于容器的位置，多个元素时，先设置的元素优先占有空间，剩余的元素一次占用余下的空间
+                建议在堆栈面板性质的容器中优先使用
+        3.Grid面板：
+            WPF中最强大的面板，任何其它面板可以实现的布局Grid都可以实现，Grid面板可以将窗口分割成更小区域的不可见的网格中，是用于分割空间的理想工具。
+            1.已下代码将Grid划分为两行三列，并将Button按钮放置到第2行第2个单元格中,并合并1行和1列
+            <Grid ShowGridLines="True" UseLayoutRounding="True">
+                <Grid.RowDefinitions >
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                    <RowDefinition></RowDefinition>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="2*"></ColumnDefinition>
+                    <ColumnDefinition></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Button Content="Button" Name="button1" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Grid.RowSpan="2" VerticalAlignment="Center"  />
+            </Grid> 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
