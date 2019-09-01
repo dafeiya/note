@@ -55,7 +55,25 @@ WPF的布局：
                 <Button Content="Button" Name="button1" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Grid.RowSpan="2" VerticalAlignment="Center"  />
             </Grid> 
     
-    
+WPF程序说明：
+   Application类：
+        每一个运行的WPF程序都是由一个Application类的实例来表示的，Application对象会跟踪在应用程序中打开的所有窗口，并决定何时打开或关闭应用程序，并且会
+    引发可以执行或清除操作的应用程序的事件。
+        Application的StartupUri属性用于指定启动程序后加载的顶级窗口，通常为Window，可以更改为其它的启动入口
+        Application类启动类的启动入口示例：
+        class Startup
+        {
+            /// <summary>
+            /// 设置启动类，在解决方案的属性中默认启动类为App,该类为创建解决方案时自动生成的App和Window模板
+            /// 可更改为其它启动类
+            /// </summary>
+            [STAThread]
+            static void Main() { 
+                Application app = new Application();
+                Window window = new Window2();
+                app.Run(window);
+            }
+        }
     
     
     
