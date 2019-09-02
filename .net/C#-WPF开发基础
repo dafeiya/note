@@ -54,7 +54,48 @@ WPF的布局：
                 </Grid.ColumnDefinitions>
                 <Button Content="Button" Name="button1" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Grid.RowSpan="2" VerticalAlignment="Center"  />
             </Grid> 
+
+其它WPF控件：
+    控件的公共属性：
+        ToolTip:元素说明，类似于Html中的title
+            绑定复杂ToolTip示例：
+            <Button Content="Button" Height="30" Name="button2" Width="75" HorizontalAlignment="Right">
+                <Button.ToolTip>
+                    <ToolTip Background="Azure" Placement="Mouse" HorizontalOffset="20" VerticalOffset="30"> 
+                        <StackPanel>
+                            <TextBlock>This is a tips!</TextBlock>
+                            <Image Source="/dafeiya.png" Width="50" Height="50"></Image>
+                        </StackPanel>
+                    </ToolTip>
+                </Button.ToolTip>
+            </Button>
+
+    画刷：Brush ,用于绘制颜色
+    属性中直接授予颜色属性时实际上是种简写，WPF会将颜色设置转为Brush对象再进行绘制
+        以下为几种绘制颜色的方式：
+        this.button1.Background = new SolidColorBrush(Colors.Blue);
+        this.button1.Background = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        this.button1.Foreground = System.Windows.SystemColors.DesktopBrush;
     
+    字体：Font
+        以下代码用于在ListBox控件中显示所有的字体：
+        foreach (FontFamily font in Fonts.SystemFontFamilies)
+                this.listBox1.Items.Add(font.Source);
+    光标：Cursor
+        控制光标的样式，如箭头、沙漏、问号等
+    
+    文本显示:TextBlock
+    以一行的形式显示文本
+        TextDecorations="UnderLine"添加下划线;
+
+    内容控件：Button、TextBox、label...等
+        内容控件内部只能存放一个元素，如果每部要设置多个元素，可以先放置容器控件，再向容器控件中添加元素
+    
+    选择控件：CheckBox
+        IsChecked属性显示勾选情况；IsThreeState属性控制是否是三种状态(是否有待选择状态)
+    多选控件：RadioButton    
+        同一容器中无Name属性时互相排斥，不在同一容器中时必须显式设置相同的Name才能互相排斥
+        
 WPF程序说明：
    Application类：
         每一个运行的WPF程序都是由一个Application类的实例来表示的，Application对象会跟踪在应用程序中打开的所有窗口，并决定何时打开或关闭应用程序，并且会
