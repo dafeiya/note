@@ -116,9 +116,26 @@ WPF程序说明：
             }
         }
     
-    
-    
-    
+   Application.Current.MainWindow 获取当前应用程序正在运行的窗口 
+   (App)Application.Current 获取当前的程序实例
+   
+   Appilication单实例应用:当触发Application的startup事件时检查是否存在另一个应用程序实例已经在运行。
+   创建单实例应用：
+        创建单实例应用包装器，添加.net Microsoft.VisualBasic引用并重写其中的包装父类
+   
+   数据绑定：
+        数据绑定会使绑定元素的数据自动更新，而不关心这个数据是如何被修改的
+        一个滑动条动态更改字体大小的示例：
+            <Slider Height="auto" Margin="10" HorizontalAlignment="Stretch"  Name="slider1" TickFrequency="1" TickPlacement="TopLeft" Value="10"  Minimum="1" Maximum="20" VerticalAlignment="Top" />
+            <TextBlock  HorizontalAlignment="Left" Margin="10,40" Name="textBlock1" Text="TextBlock" VerticalAlignment="Top" FontSize="{Binding ElementName=slider1,Path=Value,Mode=TwoWay}" />
+        XAML设置也可以完全用代码替代：
+            Binding bind=new Binding();//创建绑定对象
+            bind.Source = this.slider1;//指定数据源
+            bind.Path = new PropertyPath("Value");//指定目标属性
+            bind.Mode = BindingMode.TwoWay;//指定绑定模式，此处为双向绑定
+            this.textBlock1.SetBinding(TextBlock.FontSizeProperty, bind);//在目标元素上设置绑定
+
+            
     
     
     
