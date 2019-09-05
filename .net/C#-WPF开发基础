@@ -134,7 +134,7 @@ WPF程序说明：
             bind.Path = new PropertyPath("Value");//指定目标属性
             bind.Mode = BindingMode.TwoWay;//指定绑定模式，此处为双向绑定
             this.textBlock1.SetBinding(TextBlock.FontSizeProperty, bind);//在目标元素上设置绑定
-
+            BindingOperations.ClearAllBindings(this.textBlock1);//清除指定元素上的绑定设置
             
     
     
