@@ -4,6 +4,10 @@
 		git config --global user.email limeng@123.com
 			设置为全局配置，任何一个新建的git项目默认都采用这些信息。如果去掉--global选项，则设定只保存在当前项目的 .git/config文件里
 			这样每次提交时git都会引用这两条信息，每次git变动都会记录是谁的操作
+		$ git config user.name limeng
+		$ git config user.email limeng@123.com
+			仅设置当前仓库的配置
+			
 		git config --list	#查看已有配置信息
 		
 	2.git仓库管理：
