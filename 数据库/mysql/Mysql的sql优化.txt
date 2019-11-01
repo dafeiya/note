@@ -1,0 +1,56 @@
+-- -------------------------- -------------------------- --------------------------
+-- 1.Mysql性能查看--
+-- 好的做法是MySQL服务器稳定运行了一段时间后运行，根据服务器的”状态”进行优化。;
+;
+
+/*查看带有slow的变量设置，可以查到slow_query_log是否开启以及slow_query_log_file文件
+	slow_launch_time=# 表示如果建立线程花费了比这个值更长的时间,slow_launch_threads 计数器将增加
+*/
+ SHOW VARIABLES LIKE "slow%"; 
+ SHOW VARIABLES LIKE "long_query_time"; /*超过该时长的查询将会被记录，单位秒*/
+ SHOW GLOBAL STATUS LIKE '%slow%';
+  SHOW PROCESSLIST;  /*SHOW PROCESSLIST显示哪些线程正在运行。可以帮助识别出有问题的查询语句*/
+ 
+ SHOW VARIABLES LIKE 'max_connections'; 
+ 
+
+-- show命令查询系统状态及系统变量
+
+	达到MySQL Server的连接上限数，这会报'too many connections'的错误。通过show processlist命令查看当前系统的连接状态，
+如果发现有大量的sleep状态的连接进程，则说明该参数设置的过大，可以进行适当的调整小些。
+	show variables like “%timeout%”;
+	wait_timeout的默认值：28800（即8个小时）
+wait_timeout=120
+interactive_timeout=120要同时设置interactive_timeout和wait_timeout才会生效
+
+
+-- 2. set profile分析sql开销 ---
+-- 可以直接使用show profile来查看上一条SQL语句的开销信息。注，show profile之类的语句不会被profiling，即自身不会产生Profiling  
+--   分析SQL执行带来的开销是优化SQL的重要手段。在MySQL数据库中，可以通过配置profiling参数来启用SQL剖析。
+-- 该参数可以在全局和session级别来设置。对于全局级别则作用于整个MySQL实例，而session级别紧影响当前session。
+-- 该参数开启后，后续执行的SQL语句都将记录其资源开销，诸如IO，上下文切换，CPU，Memory等等。根据这些开销进
+-- 一步分析当前SQL瓶颈从而进行优化与调整。
+-- 停止profile,可以设置profiling参数，或者在session退出之后,profiling会被自动关闭  
+SET profiling=1;
+EXPLAIN SELECT DISTINCT player_idfrom task LIMIT 20;
+ SHOW profiles;
+ SHOW profile FOR QUERY 6;
+ SHOW profile cpu FOR QUERY 6 ;  -- memory、block io、cpu、
+SET profiling=off;  
+
+-- 
+最左前缀原则，针对组合索引，从左到右使用组合索引直到遇到范围查询(> < BETWEEN LIKE)失效
+mysql中无法利用索引完成的排序被称为“文件排序” USING files
+-- 
+;
+
+行级锁：
+	
+一致性非锁定读：
+	MVCC：每一个写操作都会创建一个新版本的数据，当行上的数据被LOCK时，读该行的历史快照(通过UNDO日志实现历史快照)，因此解决行被写锁占有时其它线程无法读的问题，提高并发性
+		数据库并发控制计划
+	RC:永远读最新的数据快照，会造成不可重复读
+	RR:读当前事务开始时的数据快照(可能是历史数据)，无不可重复读
+
+	读不加锁，读写不冲突
+ 
