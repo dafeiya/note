@@ -1,0 +1,8 @@
+连接数据库   
+mysql -hlocalhost -uroot -plimeng 
+
+explain extended SQL;	查看执行计划
+show warnings \G;		查看mysql优化后的执行sql
+
+
+
