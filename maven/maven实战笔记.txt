@@ -344,7 +344,12 @@ Profile 中允许出现的元素
 除了在pom中配置profile,还可以讲profile配置在settings,xml文件中:
 	而 settings profile 可以应用到所有你使用 Maven 构建的项目。你 可以在两个地方定义 settings profile:定义在 ~/.m2/settings.xml 中的用户特定 settings profile,或者定义在 ${M2_HOME}/conf/settings.xml 中的全局 settings profile。
 
-
-
+-----------------------------------------------------------
+Maven的依赖仲裁原则：
+	 第一原则：最短路径优先原则。
+		A依赖了B和C，B也依赖了C，那么Maven会使用A依赖的C版本，因为它的路径是最短的。
+	 第二原则：第一声明优先原则。
+	 	A依赖了B和C，B和C分别依赖了D，那么Maven会使用B依赖的D的版本，因为它是最先声明的。
+	根据这两个原则，Maven就可以确定项目所依赖的列表，但它处理依赖的方式还是有简单粗暴。有时Maven的决定结果并不是你想要的，所以我们在使用Maven的时候还要多加小心。
 
 
