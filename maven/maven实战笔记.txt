@@ -246,6 +246,24 @@ Compile
 ...
 </build>
 
+
+----------------------------------------------------------
+exclusion除去jar中不需要的jar
+<dependency>    
+     <groupId>org.springframework</groupId>  
+     <artifactId>spring-core</artifactId>  
+     <version>3.2.8</version>  
+     <exclusions>  
+           <exclusion>      
+                <groupId>commons-logging</groupId>          
+                <artifactId>commons-logging</artifactId>  
+           </exclusion>  
+     </exclusions>  
+</dependency>
+
+	我们使用exclusions元素声明排除依赖，exclusions可以包含一个或者多个exclusion子元素，因此可以排除一个或者多个传递性依赖。需要注意的是，声明exclusions的时候只需要groupId和artifactId，而不需要version元素，这是因为只需要groupId和artifactId就能唯一定位依赖图中的某个依赖。换句话说，Maven解析后的依赖中，不可能出现groupId和artifactId相同，但是version不同的两个依赖。
+
+
 ----------------------------------------------------------
 Test
 
