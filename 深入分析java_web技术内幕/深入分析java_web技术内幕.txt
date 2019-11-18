@@ -1,384 +1,385 @@
-�������java_web������Ļ
+深入分析java_web技术内幕
 ================================================================================================
 
 ClassLoader
-java ���ò�����
--verbose:class      ��ʾjvm���ص�������
--Xmx		(���Ѵ�С)
--Xms		(��ʼ�Ѵ�С)
+java 常用参数：
+-verbose:class      显示jvm加载的所有类
+-Xmx		(最大堆大小)
+-Xms		(初始堆大小)
 ----------------------------------------------------------------
 
-���룺
-	�����ԭ��
-		1.������д洢��Ϣ����С��Ԫ����1���ֽڣ���8��bit��1��byte,�����ܱ�ʶ���ַ���Χ��0~255��
-		2.����Ҫ��ʶ�ķ���̫�࣬�޷���1���ֽ�����ȫ��ʾ��
-	Ҫ������ì�ܱ���Ҫ��һ���µ����ݽṹchar������char��byte�������
-	�漰������ĵط�һ�㶼�ڴ��ַ����ֽڻ��ߴ��ֽڵ��ַ���ת���ϣ�����Ҫ����ת���ĳ�����Ҫ��I/O,���I/O�������̺�����I/O
+编码：
+	编码的原因：
+		1.计算机中存储信息的最小单元的是1个字节，即8个bit，1个byte,所以能标识的字符范围是0~255个
+		2.人类要标识的符号太多，无法用1个字节来完全表示。
+	要解决这个矛盾必须要有一个新的数据结构char，而从char到byte必须编码
+	涉及到编码的地方一般都在从字符到字节或者从字节到字符的转换上，而需要这种转换的场景主要是I/O,这个I/O包括磁盘和网络I/O
 
-��java web���漰�ı���룺
-		��һ���ı��Ĵ�С��ֻ���ַ������ĳ�����û������ģ���ʹ��һ�����ַ������ò�ͬ�ı������մ洢�Ĵ�СҲ�᲻ͬ�����Դ�
-	�ַ����ֽ�һ��Ҫ����������
+在java web中涉及的编解码：
+		看一段文本的大小，只看字符本身的长度是没有意义的，即使是一样的字符，采用不同的编码最终存储的大小也会不同，所以从
+	字符到字节一定要看编码类型
 	
-	http�����еı��룺
-		1.�û���������˷���һ��HTTP���󣬴��ڱ���ĵط���URL,Cookie,Paramier��
-		2.����˽��յ�http�����Ҫ���н���������URL�е�path,Cookie,POST����������Ҫ���롣
-		3.��Servlet���������е���������ݺ���Ҫ����Щ�����ٱ��룬ͨ��Socket���͵��û�������������������������ı�
-		4.Servlet�������ݿ�򱾵��ļ�I/O
-		5.XML�ļ�����<?xml version ="1.0" encoding="utf-8">
-		6.jsp���ļ��ı���<%@page contentType="text/html;charset=UTF-8"%>
+	http请求中的编码：
+		1.用户从浏览器端发起一个HTTP请求，存在编码的地方有URL,Cookie,Paramier。
+		2.服务端接收到http请求后要进行解析，其中URL中的path,Cookie,POST表单参数需要解码。
+		3.当Servlet处理完所有的请求的数据后，需要将这些数据再编码，通过Socket发送到用户请求的浏览器里，经浏览器解码成文本
+		4.Servlet连接数据库或本地文件I/O
+		5.XML文件编码<?xml version ="1.0" encoding="utf-8">
+		6.jsp等文件的编码<%@page contentType="text/html;charset=UTF-8"%>
 	
-	web�еı�������
-		1.url��path���ֱ���룺
-		����URL�ı���淶RFC3986�����������URL�ǽ���ASCII�ַ�����ĳ���ַ������б��벢���16���Ƶ����ֺ��ٽ�ÿ��16���Ʊ�ʾ��
-	�ֽ�ǰ����"%"��
-		��"��"ʹ��utf-8���벢ת16���ƺ�ΪE5909B,ʹ��GBK����ת16���ƺ�Ϊbefd
-		js�в���utf-8���룬encodeURI("��") 	// %E5%90%9B
+	web中的编解码规则：
+		1.url的path部分编解码：
+		查阅URL的编码规范RFC3986，浏览器编码URL是将非ASCII字符按照某种字符集进行编码并变成16进制的数字后，再将每个16进制表示的
+	字节前加上"%"，
+		对"君"使用utf-8编码并转16进制后为E5909B,使用GBK编码转16进制后为befd
+		js中采用utf-8编码，encodeURI("君") 	// %E5%90%9B
 		
-		Tomcat�ж�URL��path���ֽ��н�����ַ�������connector��<Connector URIEncoding="UTF-8">�ж���ģ����û�ж��壬
-	��Ĭ��ISO-8859-1���н��롣
+		Tomcat中对URL的path部分进行解码的字符集是在connector的<Connector URIEncoding="UTF-8">中定义的，如果没有定义，
+	则默认ISO-8859-1进行解码。
 		
-		2.QueryString���ֵı���룺
-		��get��ʽ�����QueryString��post��ʽ����ı�����������ΪParameters����ģ���ͨ��request.getParameter()��ȡ����ֵ�������ǵĽ�����
-	�ڵ�һ�ε���ʱ���еġ���getParameter()�е���org.apache.catalina.connector.Request��parseParameters�������н��롣������ַ���Ҫô��
-	Header��ContentType�����Charset��Ҫô��Ĭ�ϵ�ISO-8859-1��Ҫʹ��ContentType�ж���ı��룬��Ҫ��connector�е�<Connector URIEncoding
-	="UTF-8" useBodyEncodingForURI="true"/>�е�useBodyEncodingForURI����Ϊtrue�������������������URL��path���ֲ���BodyEncoding����
-	���룬�������Ƕ�QueryStringʹ��BodyEncoding���롣
+		2.QueryString部分的编解码：
+		以get方式请求的QueryString和post方式请求的表单参数都作为Parameters保存的，都通过request.getParameter()获取参数值。对他们的解码是
+	在第一次调用时进行的。在getParameter()中调用org.apache.catalina.connector.Request的parseParameters方法进行解码。解码的字符集要么是
+	Header中ContentType定义的Charset，要么是默认的ISO-8859-1，要使用ContentType中定义的编码，就要将connector中的<Connector URIEncoding
+	="UTF-8" useBodyEncodingForURI="true"/>中的useBodyEncodingForURI设置为true。这个配置项并不会对整个URL的path部分采用BodyEncoding进行
+	解码，而仅仅是对QueryString使用BodyEncoding解码。
 	
-		3.Http Header�еı����
-			Http�����headerͷ�лᴫ��������������Cookie��redirectPath�ȣ����û�������Щ������Ҳ����ڱ������⡣
-			Tomcat��Header�еĲ������н���Ҳ�����״ε���request.getHeader()ʱ���еġ��������Header��û��ָ���ַ�������Ĭ��ʹ��
-		ISO-8859-1���롣������Ҳ��������Header�����������ʽ������������õ�Header���з�ASCII�ַ��������п϶���������
-			��ˣ���ò�Ҫ��Header�д��ݷ�ASCII�ַ��������Ҫ���ӵ�Header�У������Щ�ַ����б��룬�����ӵ�header��
+		3.Http Header中的编解码
+			Http请求的header头中会传递其它参数，如Cookie、redirectPath等，若用户设置这些参数，也会存在编码问题。
+			Tomcat对Header中的参数进行解码也是在首次调用request.getHeader()时进行的。若请求的Header项没有指定字符集，则默认使用
+		ISO-8859-1解码。而我们也不能设置Header的其它解码格式，所以如果设置的Header中有非ASCII字符，解码中肯定会有乱码
+			因此，最好不要在Header中传递非ASCII字符，如果非要添加到Header中，则对这些字符进行编码，再添加到header中
 			
-		4.POST�����еı����
-			��POST�������ݵĽ������ڵ�һ�ε���request.getParameter()ʱ�����ģ�POST�����Ĳ������ݷ�ʽ��QueryString��ͬ������ͨ��HTTP��
-		Body���ݵ�����˵ġ���������ҳ���ϵ����ύ��ťʱ��������Ƚ�����ContentType��Charset�����ʽ���ڱ���������Ĳ������б��룬Ȼ��
-		�ύ���������ˣ��ڷ����ͬ��Ҳ����ContentType�е��ַ������н��룬����ͨ��POST�����ύ�Ĳ���һ�㲻��������⡣
-			Tomcat�ڽ���Parameter��������֮ǰ���ȡHeader��Content-Type����ͷ����������Content-Type�е�charsetֵ����Ĭ������������
-		���ύform����ʱ���ύ��Content-Type�ǲ��Ậ��charset��Ϣ�ġ�����ͨ��<form accept-charset='GBK'>��ָ��form�����ı��롣��
-		accept-charsetʱ��form����Ĭ��ʹ�õ�ǰҳ����ַ������б��룬
-			Tomcat�ṩ�����ý����ַ����Ľӿڣ�ͨ��request.setCharacterEncoding(charset)�����á���һ��Ҫ�ڵ�һ�ε���request.getParameter
-		����֮ǰ������request.setCharacterEncoding(charset)��(ע����������Ƿ����request.getParameter()�ĵ���)�����û�������ַ�������
-		Ĭ��ISO-8859-1
+		4.POST表单中的编解码
+			对POST表单数据的解码是在第一次调用request.getParameter()时发生的，POST表单的参数传递方式与QueryString不同，它是通过HTTP的
+		Body传递到服务端的。当我们在页面上单机提交按钮时浏览器首先将根据ContentType的Charset编码格式对在表单中填入的参数进行编码，然后
+		提交到服务器端，在服务端同样也是用ContentType中的字符集进行解码，所以通过POST表单提交的参数一般不会出现问题。
+			Tomcat在解析Parameter参数集合之前会获取Header的Content-Type请求头，并检查这个Content-Type中的charset值。但默认情况下浏览器
+		在提交form表单时，提交的Content-Type是不会含有charset信息的。可以通过<form accept-charset='GBK'>来指定form表单的编码。无
+		accept-charset时，form表单默认使用当前页面的字符集进行编码，
+			Tomcat提供了设置解码字符集的接口，通过request.setCharacterEncoding(charset)来设置。但一定要在第一次调用request.getParameter
+		方法之前就设置request.setCharacterEncoding(charset)。(注意过滤器中是否存在request.getParameter()的调用)。如果没有设置字符集，则
+		默认ISO-8859-1
 		
-		5.HTTP Body�ı����
-			���û��������Դ�Ѿ��ɹ���ȡ����Щ���ݽ�ͨ��Response���ظ��ͻ�����������������Ҫ�Ⱦ������룬�ٵ���������н��롣
-		�����ַ��������ں�̨ͨ��request.setCharacterEncoding(charset)�����ã���������request.getCharacterEncoding��ֵ������ͨ��Header
-		��Content-Type���ظ��ͻ��ˡ���������յ����ص�Socket��ʱ�ͻ�ͨ��Content-Type�е�charset�����롣�����ص�Http Header�е�
-		Content-Typeû������charset����ô�����������HTMLҳ����<meta HTTP-equiv="Content-Type" content="text/html;charset=GBK">�е�
-		charset�����롣���Ҳû�ж��壬��ôʹ�������Ĭ�ϵı���������
+		5.HTTP Body的编解码
+			当用户请求的资源已经成功获取后，这些内容将通过Response返回给客户端浏览器。这个过程要先经过编码，再到浏览器进行解码。
+		解码字符集可以在后台通过request.setCharacterEncoding(charset)来设置，它将覆盖request.getCharacterEncoding的值，并且通过Header
+		的Content-Type返回给客户端。浏览器接收到返回的Socket流时就会通过Content-Type中的charset来解码。若返回的Http Header中的
+		Content-Type没有设置charset，那么浏览器将根据HTML页面中<meta HTTP-equiv="Content-Type" content="text/html;charset=GBK">中的
+		charset来解码。如果也没有定义，那么使用浏览器默认的编码来解码
 		
-	�����ı������⣺
-		��ͼƬ
+	常见的编码问题：
+		见图片
 		
 -------------------------------------------------------------------------------------------------------------
-�������ClassLoader:
-	1.��ClassLoader�����ã�
-		1.���������ڵ�λ�ã����������Class�ļ����ص�JVM��
-		2.���ÿ����Ӧ����˭���أ���һ�ָ����ȵĵȼ����ػ��Ƽ������ļ����Ա�֤һ�����ļ���JVM������ֻ�ܼ���һ��
-		3.��Class�ֽ����ļ�������JVMͳһҪ��Ķ����ʽ�����ɶ�Ӧ��Class��ʵ������
+类加载器ClassLoader:
+	1.类ClassLoader的作用：
+		1.查找类所在的位置，并负责将类的Class文件加载到JVM中
+		2.审查每个类应该由谁加载，以一种父优先的等级加载机制加载类文件，以保证一个类文件在JVM中能且只能加载一次
+		3.将Class字节码文件解析成JVM统一要求的对象格式，生成对应的Class的实例对象
 		
-	2.ClassLoader���ϼ�ί�м��ػ��ƣ�
-		�κ�һ�����ļ��ﵽ�κ�һ����Ӵ���ʱ�������Ӵ������ȼ��������ļ��Ƿ��Լ����ع�������Ѿ����أ���ܾ�����
-	���ء���û�м��ع���������ѯ��������Ƿ�Ӧ������һ���ĸ��߼���ĽӴ����м��أ��ϼ��Ӵ��һ�������ǵļ��ع��򣬼��
-	������Ƿ��Ѿ������ع�������Ѿ����أ����Ѿ����صĽ����������һ�������û�м��ع����������һ��(����и���һ��)
-	�Ӵ��ҷ��Ӵ����󣬸����Լ�Ҳ��ͬ���Ĵ���������ֱ����һ���Ӵ��ҽӴ����߸�������һ�����������ļ������Լ��Ӵ������
-	�����������������������Ӵ��ҵõ�����һ���ĽӴ��ҷ�����Ϊ�����û�б��Ӵ�������Ҳ��Ӧ�������ǽӴ�������Ӵ��Ҳ�
-	����ʽ��������࣬ͬʱ����Ҳ�ᱻ����Ϊ����ȼ��Ӵ��ҵļ�����
-		���ּ��ط�ʽȷ�������е����ļ����ܱ���ȷ�ؼ���
+	2.ClassLoader的上级委托加载机制：
+		任何一个类文件达到任何一个类接待室时，这个类接待室首先检查这个类文件是否被自己加载过，如果已经加载，则拒绝本次
+	加载。若没有加载过，则向上询问这个类是否应该在上一级的更高级别的接待室中加载，上级接待室会根据它们的加载规则，检测
+	这个类是否已经被加载过，如果已经加载，则将已经加载的结果反馈给下一级，如果没有加载过，就向更高一级(如果有更高一级)
+	接待室发接待请求，更高以及也是同样的处理方法，直到有一级接待室接待或者告诉它下一级这个这个类文件不是自己接待的这个
+	结果。如果这个类来到的这个接待室得到它上一级的接待室反馈认为这个类没有被接待，并且也不应该由它们接待，这个接待室才
+	会正式加载这个类，同时该类也会被定义为这个等级接待室的加载者
+		这种加载方式确保了所有的类文件都能被正确地加载 
+		简而言之，双亲委派模型的工作过程为：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成，每一个层次的加载器都是如此，因此所有的类加载请求都会传给顶层的启动类加载器，只有当父加载器反馈自己无法完成该加载请求（该加载器的搜索范围中没有找到对应的类）时，子加载器才会尝试自己去加载。
 	
-		����JVMƽ̨�ṩ����ClassLoader:Bootstrap ClassLoader;ExtClassLoader;AppClassLoader
-	������ClassLoader���Է�Ϊ�������ͣ�Ϊ�Ӵ��ҷ���ĽӴ��Һ�Ϊ���ļ�����ĽӴ�������
-		1.Bootstrap ClassLoader��
-			��ClassLoader���ǽӴ������������ģ�����Ҫ����JVM����������Ҫ���࣬���ClassLoader��ȫ��JVM�Լ����Ƶģ�����Ҳ
-		���ʲ�������࣬��������һ����ļ��ع��߶��ѣ���û�и���һ���ĸ���������Ҳû���Ӽ���������˸�ClassLoader�ǲ���
-		���ϼ�ί�м��ع��򡣼�Bootstrap ClassLoader��������JVM����ȼ���Σ���ΪBootStrap ClassLoader��û������ClassLoader
-		�ļ��ع�����������C++д�ĳ��򣬿��Զ������У�����˵��JVM���е���㡣��BootStrap ClassLoader�����������󣬻�����
-		һ��AppClassLoader��
+		整个JVM平台提供三层ClassLoader:Bootstrap ClassLoader;ExtClassLoader;AppClassLoader
+	这三层ClassLoader可以分为两种类型，为接待室服务的接待室和为类文件服务的接待室两种
+		1.Bootstrap ClassLoader：
+			该ClassLoader就是接待服务室自身的，它主要加载JVM自身工作需要的类，这个ClassLoader完全由JVM自己控制的，别人也
+		访问不到这个类，它仅仅是一个类的加载工具而已，即没有更高一级的父加载器，也没有子加载器，因此该ClassLoader是不遵
+		守上级委托加载规则。即Bootstrap ClassLoader并不属于JVM的类等级层次，因为BootStrap ClassLoader并没有遵守ClassLoader
+		的加载规则。它本身是C++写的程序，可以独立运行，可以说是JVM运行的起点。在BootStrap ClassLoader完成它的任务后，会生成
+		一个AppClassLoader，
 		2.ExtClassLoader:
-			�����������е����⣬����JVM������һ���֣���������ѪͳҲ������������������JVM����ʵ�ֵġ���������ض�Ŀ����
-		System.getProperty("java.ext.dirs")Ŀ¼�¡�Ĭ������»����%JAVA_HOME%\\jre\lib\ext�µ�jar��
+			这个类加载器有点特殊，它是JVM自身的一部分，但是它的血统也不纯正，它并不是由JVM亲自实现的。它服务的特定目标在
+		System.getProperty("java.ext.dirs")目录下。默认情况下会加载%JAVA_HOME%\\jre\lib\ext下的jar包
 		3.AppClassLoader:
-			������������ר��Ϊ�Ӵ���Ա����ģ����ĸ�����ExtClassLoader���������Ŀ���ǹ�����ͨ���ļ���������
-		System.getProperty("java.class.path")Ŀ¼�µ��඼���Ա��������������أ������Ŀ¼�������Ǿ����õ���classpath��
-		������Ҫ�Լ�ʵ��һ�����������������ֱ��ʵ��ClassLoader�����࣬���Ǽ̳�URLClassLoader���������࣬���ǵĸ�������
-		����AppClassLoader�����ܵ����ĸ����๹�����������Ķ��󶼱������յ���getSystemClassLoader()��Ϊ������������getSystemClassLoader()
-		������ȡ��������AppClassLoader
-		��ȡ��ǰjvm��ʱ�е�classpath��Ŀ¼
+			这个类加载器是专门为接待会员服务的，它的父类是ExtClassLoader。它服务的目标是广大的普通类文件，所有在
+		System.getProperty("java.class.path")目录下的类都可以被这个类加载器加载，而这个目录就是我们经常用到的classpath。
+		若我们要自己实现一个类加载器，不管是直接实现ClassLoader抽象类，还是继承URLClassLoader或其它子类，它们的父加载器
+		都是AppClassLoader，不管调用哪个父类构造器，创建的对象都必须最终调用getSystemClassLoader()作为父加载器。而getSystemClassLoader()
+		方法获取到的正是AppClassLoader
+		获取当前jvm运时行的classpath根目录
 		System.out.println(this.getClass().getClassLoader().getResource(""));
 		
-	3.jvm����class�ļ����ڴ棺
-		JVM����class�ļ�ʱ�����ַ�ʽ��
-			1.��ʽ���أ�
-				����ͨ���ڴ��������ClassLoader����������Ҫ���࣬����ͨ��JVM���Զ�����������ൽ�ڴ��С�
-				�����������м̳л�������ĳ����ʱ��JVM�ڽ�����ǰ�����ʱ�������õ��಻���ڴ��У��ͻ��Զ�����Щ����ؼ��ص��ڴ��С�
-			2.��ʽ���أ�
-				��ֱ���ڴ�����ͨ������ClassLoader��api�ķ�ʽ������һ���࣬
-				�������this.getClass.getClassLoader().loadClass()����Class.forName()��this.getClass.getClassLoader().findSystemClass()�ȷ�ʽ,
-				���������Լ���дClassLoader��findClass()������
+	3.jvm加载class文件到内存：
+		JVM加载class文件时有两种方式：
+			1.隐式加载：
+				即不通过在代码里调用ClassLoader来加载所需要的类，而是通过JVM来自动加载所需的类到内存中。
+				当我们在类中继承或者引用某个类时，JVM在解析当前这个类时发现引用的类不在内存中，就会自动将这些类加载加载到内存中。
+			2.显式加载：
+				即直接在代码中通过调用ClassLoader的api的方式来加载一个类，
+				例如调用this.getClass.getClassLoader().loadClass()或者Class.forName()，this.getClass.getClassLoader().findSystemClass()等方式,
+				或者我们自己重写ClassLoader的findClass()方法等
 				Class cla=this.getClass().getClassLoader().loadClass("java.util.ArrayList");
 				System.out.println(cla);	//class java.util.ArrayList
-			�������ַ�ʽ���Ի��ʹ�ã���ͨ��ClassLoader��ʽ������һ���࣬����������������������࣬��ô��Щ�����õ���ͻ���ʽ����
+			以上两种方式可以混合使用，如通过ClassLoader显式加载了一个类，而这个类中又引用了其它类，那么这些被引用的类就会隐式加载
 			
-	4.�����쳣��
+	4.常见异常：
 		1.ClassNotFoundException:
-			��jvmҪ����ָ�����ļ��ֽ��뵽�ڴ�ʱ����û���ҵ����class�ļ�������İ취���Ǽ�鵱ǰ��classpath·�����Ƿ���ڸ��ļ���
-			this.getClass().getClassLoader().getResource("")���Ի�ȡ��ǰjvm��ʱ�е�classpath��Ŀ¼
-		2.NoClassDefFoundError��
-			���쳣��Ȼ��ClassNotFoundException������һ��ʹ��java����ʱ���֣�ԭ����jvm��ʽ������jar������ʾ����class����������
-			java -cp example.jar Example	//����
-			java -cp example.jar com.limeng.test.Example	//��ȷ
+			当jvm要加载指定的文件字节码到内存时，并没有找到这个class文件。解决的办法就是检查当前的classpath路径下是否存在该文件。
+			this.getClass().getClassLoader().getResource("")可以获取当前jvm运时行的classpath根目录
+		2.NoClassDefFoundError：
+			该异常依然由ClassNotFoundException引发，一般使用java启动时出现，原因是jvm隐式加载了jar后再显示加载class报错，例如
+			java -cp example.jar Example	//报错
+			java -cp example.jar com.limeng.test.Example	//正确
 		3.LinkageError:
-			��ʹ��ClassLoader��ʽ�����ѱ����ع�����ʱ���׳����쳣
+			当使用ClassLoader显式加载已被加载过的类时会抛出该异常
 			
-	5.��ClassLoader�ĳ�����չ��
+	5.对ClassLoader的常见扩展：
 		1.tomcat:
-			����tomcat������α�ClassLoader�����ʡ��
-			����tomcat�е�webӦ����α�����
-				һ��Ӧ����Tomcat����һ��StandardContext��ʾ����������webӦ�õ�web.xml�����ļ�ʵ�������е�Servlet��
-				Servlet��class����<servlet-class>��ָ���ģ����Կɼ�ÿ��Servlet��ļ��ؿ϶���ͨ����ʽ���صķ������ص�tomcat������
-			������
+			关于tomcat自身如何被ClassLoader拉起的省略
+			关于tomcat中的web应用如何被拉起：
+				一个应用在Tomcat中由一个StandardContext表示，并来解释web应用的web.xml配置文件实例化所有的Servlet。
+				Servlet的class是由<servlet-class>来指定的，所以可见每个Servlet类的加载肯定是通过显式加载的方法加载到tomcat容器的
+			。。。
 			
-		2.����Ȳ���
-			JVM�ڼ�����֮ǰ������������Ƿ��Ѿ������ع�����Ҳ���ǵ���findLoadClass()�����鿴�Ƿ��ܹ��������ʵ����
-			������Ѿ����ع������ٵ���loadClass()���ᵼ�����ͻ��
-			��JVM��ʶһ�����Ƿ���ͬһ�����������������
-				1.������������Ƿ�һ��
-				2.����������ClassLoader��ʵ���Ƿ���ͬһ������ʹ��һ��ClassLoader������ʵ��������ͬһ����Ҳ�᲻һ����
-			���ʵ������Ȳ�����Դ�����ͬ��ClassLoader��ʵ������Ȼ��ͨ�������ͬ��ʵ������������ͬ�����ࡣ
-			ʹ�ò�ͬ��ClassLoaderʵ������ͬһ���࣬�����ᵼ��JVM��PermGen������������Ϊ���ǵ�ClassLoader����Ҳ�����������һ����
-		��û�ж���������ʱ���ᱻGC���ա�
+		2.类的热部署：
+			JVM在加载类之前会检查请求的类是否已经被加载过来，也就是调用findLoadClass()方法查看是否能够返回类的实例。
+			如果类已经加载过来，再调用loadClass()将会导致类冲突。
+			但JVM标识一个类是否是同一个类会有两个条件：
+				1.类的完整类名是否一致
+				2.加载这个类的ClassLoader的实例是否是同一个。即使是一个ClassLoader的两个实例，加载同一个类也会不一样。
+			因此实现类的热部署可以创建不同的ClassLoader的实例对象，然后通过这个不同的实例对象来加载同名的类。
+			使用不同的ClassLoader实例加载同一个类，并不会导致JVM的PermGen区无限增大，因为我们的ClassLoader对象也会和其它对象一样，
+		在没有对象再引用时，会被GC回收。
 			
-			����java�Ķ�̬�����ࣺ
-				java��һ��ʹ���������޸�һ���࣬����Ҫ����һ�飬�ܷ�ʱ�����Ǿ����ܲ���������̬��ļ��ض�����Ҫ����JVM��������˽�JVM��
-			�������ƣ���Ӧ�÷�����������ͷ��
-				java���������ǻ��ڹ�������Ļ��ƣ��Դﵽ��Ϣ�ĸ߶ȷ�����Ҳ����ͨ�����沢���ж����״̬��ʡȥ����Ϣ���ظ������ͻ��ա�
-			����֪������һ�����������������Ϳ��Ա��˳��к����á�
-				���磬�����ܹ���̬����һ���������JVM�������������JVM�еĶ���ƽ�����ɣ�  ���������ܣ���Ȼ��JVM�еĶ���ֻ��һ�ݣ�������
-			�Ͽ���ֱ���滻�������Ȼ�����javaջ�����ж�ԭ��������ù�ϵ��������Ȼ�����У���Ϊ��Υ����JVM�����ԭ�򣬶�������ù�ϵֻ��
-			����Ĵ����߳��к�ʹ�ã�JVM�����Ը�Ԥ��������ù�ϵ����ΪJVM����֪����������ô��ʹ�õġ�����һ����������Խṹ���޸ģ�����
-			������ʱ�������������Ȼ���ø����ԡ�
-				��Ȼ��ȫ�����ϰ����滻�ǲ���ʵ�ģ����������Ҫ��������Ҳ������һЩ"�������"�ġ�ǰ��ķ�������ɲ��ܶ�̬�ṩ�����Ĺؼ��ǣ�
-			�����״̬�������ˣ����ұ��������������ˣ�һ���򵥵Ľ���������㲻��������״̬�����󱻴���ʹ�ú���ͷŵ����´��޸ĺ󣬶���Ҳ
-			�����µ��ˡ������JSP��������Ƕ�̬�������һ��ʵ�ַ�����
+			关于java的动态加载类：
+				java有一个痛处，就是修改一个类，必须要重启一遍，很费时。于是就想能不能来个动态类的加载而不需要重启JVM，如果你了解JVM的
+			工作机制，就应该放弃这样的念头。
+				java的优势正是基于共享对象的机制，以达到信息的高度分享，也就是通过保存并持有对象的状态而省去类信息的重复创建和回收。
+			我们知道对象一旦被创建，这个对象就可以被人持有和利用。
+				假如，我们能够动态加载一个对象进入JVM，但是如何做到JVM中的对象平滑过渡？  几乎不可能！虽然在JVM中的对象只有一份，在理论
+			上可以直接替换这个对象，然后更新java栈中所有对原对象的引用关系，但这仍然不可行，因为它违反了JVM中设计原则，对象的引用关系只有
+			对象的创建者持有和使用，JVM不可以干预对象的引用关系，因为JVM并不知道对象是怎么被使用的。假如一个对象的属性结构被修改，但是
+			在运行时其他对象可能仍然引用该属性。
+				虽然完全的无障碍的替换是不现实的，但是如果非要那样做，也还是有一些"旁门左道"的。前面的分析中造成不能动态提供类对象的关键是，
+			对象的状态被保存了，并且被其他对象引用了，一个简单的解决方法就算不保存对象的状态，对象被创建使用后就释放掉，下次修改后，对象也
+			就算新的了。这就算JSP。这个就是动态加载类的一种实现方案。
 	
-	6.ClassLoader���ڴ����
-			java�е���ͼ���������ͬ����Ҫ�洢�ռ䣬��sun JDK������Ҳ���洢�ڶѵ����ô�(PermGen��)
-		��Ҫע���һ����JVM�ǰ��������ģ����и�����:JVM�������һ��jar���Ƿ������jar���������඼���ص��ڴ��У���Ȼ���ǵġ�
-		JVMֻ�������Щ����Ӧ�ó�������ȷʹ�õ��ൽ�ڴ档
-			������ʹ�õ�java��Խ�࣬��Ҫռ�õ��ڴ�Ҳ��Խ�࣬ͨ�������JVMֻ�����һ���ൽ�ڴ�һ�Σ�����һ��������ܻ��ظ�����ͬһ���ࣺ
-		�Լ�ʵ�ֵ��������������ظ����ص���������PermGen�����ܶ��Ѿ�ʧЧ������ж�أ����ܻᵼ��PermGen���ڴ�й©��
-			ͨ��һ�����ܷ��ܹ���ж�أ���Ҫͬʱ����һ������������
-			1.��java����û�жԱ�ʾ�����������java.lang.ClassLoader��������á�
-			2.java����û�жԱ�ʾ����������ص�����κ�java.lang.ClassLoader��������á�
-			3.java���ϸ�����������ص��κ�������ж��󶼲��ٴ��(������)
-			��Ȼ��JVM��������3��Ĭ�ϵ����������������������Щ��������ˣ��κ�ϵͳ��(��java.lang.String)��ͨ��Ӧ�ó�������������ص��κ�
-		Ӧ�ó����඼����������ʱ�ͷš�
+	6.ClassLoader的内存分配
+			java中的类和加载器本身同样需要存储空间，在sun JDK中它们也被存储在堆的永久代(PermGen区)
+		需要注意的一点是JVM是按需加载类的，曾有个疑问:JVM如果加载一个jar包是否会把这个jar包中所有类都加载到内存中？显然不是的。
+		JVM只会加载哪些在你应用程序中明确使用的类到内存。
+			理论上使用的java类越多，需要占用的内存也会越多，通常情况下JVM只会加载一个类到内存一次，但有一种情况可能会重复加载同一个类：
+		自己实现的类加载器会出现重复加载的情况，如果PermGen区不能对已经失效的类作卸载，可能会导致PermGen区内存泄漏。
+			通常一个类能否能够被卸载，需要同时满足一下三个条件：
+			1.在java堆中没有对表示该类加载器的java.lang.ClassLoader对象的引用。
+			2.java堆中没有对表示类加载器加载的类的任何java.lang.ClassLoader对象的引用。
+			3.java堆上该类加载器加载的任何类的所有对象都不再存活(被引用)
+			显然，JVM所创建的3种默认的类加载器都不可能满足这些条件，因此，任何系统类(如java.lang.String)或通过应用程序类加载器加载的任何
+		应用程序类都不能在运行时释放。
 		
 		
 -------------------------------------------------------------------------------------------------------------
-JVM����ϵ�ṹ��
-	1.JVM�Ľṹ��������4������ɡ�
-		1.��������� ClassLoader������
-		2.ִ�����棺 ִ������������Ǹ���ִ��class�ļ��а������ֽ���ָ��
-		3.jvm�ڴ����� ���ڴ滮�ֳ����ɸ�����ģ��ʵ�ʻ����ϵĴ洢����¼�͵��ȹ���ģ��
-		4.���ط������ã�����C��C++ʵ�ֵı��ط����Ĵ��뷵�ؽ��
-	2.ִ��������⣺
-			ִ��������jvm�ĺ��Ĳ��֣�ִ����������þ������jvm�ֽ���ָ��õ�ִ�н����ִ������������ʲô��ʽ��JVM��ʵ�ֳ����Լ�ȥʵ��
-		ִ������Ҳ����ִ��һ���������һ�����̣������붼�ǰ����ڷ������ڵģ�����ִ�����汾���Ǿ���ִ��һ���������������������̣�����Ӧ
-		��OS�е�һ��java�̡߳�ÿ��java�߳̾���һ��ִ�������ʵ������һ��JVMʵ���л�ͬʱ�ж��ִ�������ڹ�������Щִ�������е���ִ���û�����
-		�е���ִ��JVM�ڲ�����(��GC)��
+JVM的体系结构：
+	1.JVM的结构基本上由4部分组成。
+		1.类加载器： ClassLoader，如上
+		2.执行引擎： 执行引擎的任务是负责执行class文件中包含的字节码指令
+		3.jvm内存区： 将内存划分成若干个区以模拟实际机器上的存储、记录和调度功能模块
+		4.本地方法调用，调用C或C++实现的本地方法的代码返回结果
+	2.执行引擎详解：
+			执行引擎是jvm的核心部分，执行引擎的作用就算解析jvm字节码指令，得到执行结果。执行引擎具体采用什么方式由JVM的实现厂家自己去实现
+		执行引擎也就是执行一条条代码的一个流程，而代码都是包含在方法体内的，所以执行引擎本质是就是执行一个个方法所串起来的流程，并对应
+		到OS中的一个java线程。每个java线程就算一个执行引擎的实例，在一个JVM实例中会同时有多个执行引擎在工作，这些执行引擎有的在执行用户程序，
+		有的在执行JVM内部程序(如GC)。
 			
-	3.jvm�ڴ�����⣺
-			jvm�ڴ�������JVM�����ڴ�����ĵط���ִ��������ִ��һ�γ���ʱ��Ҫ�洢һЩ���������������Ҫ�Ĳ��������������ִ�н������Ҫ���档
-		class����ֽ��뻹����Ķ���ʵ������Ϣ����Ҫ��ִ������ִ��ǰ��׼���á���Щ׼�������ݺ�ִ������ʱ���������ݶ���jvm�ڴ����д�š�
-			jvmͼʾ���п��Կ�����һ��JVMʵ������һ����������java�ѡ�javaջ��PC�Ĵ����ͱ��ط�������
-			���з�������java���������̹߳����ģ�Ҳ����˵���Ա����е�ִ������ʵ��ȥ���ʡ�
-			ÿ��ִ��ʵ��(���߳�)������ʱ��JVM��Ϊ����̴߳���һ��javaջ��ͬʱ��Ϊ����̷߳���һ��PC�Ĵ��������PC�Ĵ�����ָ������̵߳ĵ�һ�п�
-		ִ�д��롣�����ǰ����ִ��һ��java���������ڵ�ǰ�̵߳����javaջ�ϴ���һ���µ�ջ֡���ݽṹ�����ջ֡��洢���������һЩԪ��Ϣ��
-		������������ж���ķ����Ĳ������ֲ�������һЩ����֧�ֳ����صĽ����������������ؼ��쳣�������Ƶȣ���PC�Ĵ���ÿ����ִ������ִ��ʱ��ָ��
-		����ִ�е���һ��ָ�������ִ����ʱ����Ӧ��ջ֡Ҳ�������������ǰ�̶߳�Ӧ��javaջ��û��ջ֡�����javaջҲ���ᱻJVM����������JVM�˳�
+	3.jvm内存区详解：
+			jvm内存区就算JVM进行内存管理的地方。执行引擎在执行一段程序时需要存储一些东西，如操作码需要的操作数，操作码的执行结果等需要保存。
+		class类的字节码还有类的对象实例等信息都需要在执行引擎执行前就准备好。这些准备的数据和执行中临时产生的数据都在jvm内存区中存放。
+			jvm图示中中可以看出，一个JVM实例会有一个方法区、java堆、java栈、PC寄存器和本地方法区。
+			其中方法区和java堆是所有线程共享的，也就是说可以被所有的执行引擎实例去访问。
+			每个执行实例(即线程)被创建时，JVM会为这个线程创建一个java栈，同时会为这个线程分配一个PC寄存器，这个PC寄存器会指向这个线程的第一行可
+		执行代码。如果当前正在执行一个java方法，会在当前线程的这个java栈上创建一个新的栈帧数据结构，这个栈帧会存储这个方法的一些元信息，
+		如在这个方法中定义的方法的参数、局部变量、一些用来支持常量池的解析、正常方法返回及异常处理机制等；而PC寄存器每次在执行引擎执行时会指向
+		即将执行的下一条指令。当方法执行完时，相应的栈帧也将撤销。如果当前线程对应的java栈中没有栈帧，这个java栈也将会被JVM撤销，整个JVM退出
 			
-	4.jvm���ڴ���䣺
-		jvm��������Ϊһ������������OS�У����Ը����ֽ����ڴ滮��		
-		1.java�ѣ�
-			java�������ڴ洢java������ڴ����򣬶ѵĴ�С����JVM����ʱ��һ����OS������ɣ�ͨ��-Xmx(���Ѵ�С)��-Xms(��ʼ�Ѵ�С)����ѡ������
-		�ƴ�С��һ��������ɣ��ѵĴ�С�ͽ��̶�����ʹ�ڴ治��ʱҲ��������OS�������룬����ʱҲ���Ὣ������ڴ潻����OS��java�ѵ��ڴ�ռ�ķ���
-		��ȫ��JVM�����ƣ�������Ĵ�����javaӦ�ó��������ƣ����Ƕ�����ռ�Ŀؼ��ͷ���GC����ɣ�����GC���㷨�Ĳ�ͬ���ڴ���յķ�ʽ��ʱ��Ҳ��ͬ��
-			ClassLoader���󼴴���ڶѵ�PermGen���С�
-		2.�̣߳�
-			JVM����ʵ�ʳ����ʵ�����̣߳����߳���Ҫ�ڴ�ռ����洢һЩ��Ҫ�����ݡ�ÿ���̴߳���ʱJVM����Ϊ������һ��javaջ�����С���ݲ�ͬ��
-		JVMʵ�ֶ���ͬ��ͨ����256K~756K֮�䡣�߳���ռ�ռ���ȶѿռ���˵�Ƚ�С����������̹߳��࣬�̶߳�ջ�����ڴ�ʹ��������Ҳ�ǳ���Ӧ������
-		CPU�ĺ��������������߳�����
+	4.jvm的内存分配：
+		jvm启动后将作为一个进程运行在OS中，并对各部分进行内存划分		
+		1.java堆：
+			java堆是用于存储java对象的内存区域，堆的大小是在JVM启动时就一次向OS申请完成，通过-Xmx(最大堆大小)和-Xms(初始堆大小)两个选项来控
+		制大小。一旦分配完成，堆的大小就将固定，即使内存不够时也不能再向OS重新申请，空闲时也不会将多余的内存交换给OS。java堆的内存空间的分配
+		完全由JVM来控制，而对象的创建由java应用程序来控制，但是对象所占的控件释放由GC来完成，根据GC的算法的不同，内存回收的方式和时机也不同。
+			ClassLoader对象即存放在堆的PermGen区中。
+		2.线程：
+			JVM运行实际程序的实体是线程，而线程需要内存空间来存储一些必要的数据。每个线程创建时JVM都会为它创建一个java栈，其大小根据不同的
+		JVM实现而不同，通常在256K~756K之间。线程所占空间相比堆空间来说比较小，但是如果线程过多，线程堆栈的总内存使用量可能也非常大。应当根据
+		CPU的核数来分配设置线程数。
 		
 		3.NIO:
-			java��1.4�汾�Ժ��������µ�I/O(NIO)��⣬��ʱһ�ֻ���ͨ���ͻ�������ִ�е���I/O��ʽ��NIOʹ��java.nio.ByteBuffer.allocateDirect()
-		���������ڴ棬���ַ�ʽҲ����ͨ��˵��NIO direct memory ��NIO������ڴ�ʹ�õ��Ǳ����ڴ������java���ϵ��ڴ棬ÿ��ͨ�����ַ�ʽ�����ڴ�
-		ʱ�����OS��os::malloc()���������������������������ߴ��̽���ʱ������OS���ں˿ռ��з��ͣ�����Ҫ�����ݸ��Ƶ�java�ڴ��У�����Ȼ����
-		I/O�������һ��Ĵ�OS���ں˿ռ䵽java���ϵ��л�������ö࣬��Ϊ���ǿ��Ա�����java���뱾����֮�临�����ݡ�
-			����NIO��ֱ��ռ��OS���ڴ����JVM���е��ڴ棬������GC�Ĺ�Ͻ��Χ��������Ϸ��䱾���ڴ棬���ڴ����ʹ�ã���ôGC�Ͳ���Ҫִ��GC,
-		DirectByteBuffer����Ҳ�Ͳ��ᱻ���ա���OS�ڴ治��ʱ���ٴγ��Է��䱾���ڴ�ͻ����OOM��
-			Ϊ�ˣ�jdk�ṩ��һ��DirectByteBuffer�����������ڴ��ʹ�ã�ÿһ�ζ�direct memory��ʹ�ö�����һ��DirectByteBuffer������������
-		�����ڴ������DirectByteBuffer����Ļ��ն���OS�Զ����ա�DirectByteBuffer����һ��Cleaner���󣬸ö�����һ��clean()���������ֶ��ͷ�
-		�����ڴ档((sun.nio.ch.DirectBuffer)byteBuffer).cleaner().clean();
+			java在1.4版本以后添加了新的I/O(NIO)类库，这时一种基于通道和缓冲期来执行的新I/O方式。NIO使用java.nio.ByteBuffer.allocateDirect()
+		方法分配内存，这种方式也就是通常说的NIO direct memory 。NIO分配的内存使用的是本机内存而不是java堆上的内存，每次通过这种方式分配内存
+		时会调用OS的os::malloc()函数。产生的数据如果和网络或者磁盘交互时都会在OS的内核空间中发送，不需要将数据复制到java内存中，很显然这种
+		I/O操作会比一般的从OS的内核空间到java堆上的切换操作快得多，因为它们可以避免在java堆与本机堆之间复制数据。
+			由于NIO是直接占用OS的内存而非JVM堆中的内存，不属于GC的管辖范围。如果不断分配本地内存，堆内存很少使用，那么GC就不需要执行GC,
+		DirectByteBuffer对象也就不会被回收。当OS内存不足时，再次尝试分配本地内存就会出现OOM。
+			为此，jdk提供了一个DirectByteBuffer来管理本地内存的使用，每一次对direct memory的使用都会有一个DirectByteBuffer对象来管理，
+		本地内存可以随DirectByteBuffer对象的回收而被OS自动回收。DirectByteBuffer持有一个Cleaner对象，该对象有一个clean()方法用于手动释放
+		本地内存。((sun.nio.ch.DirectBuffer)byteBuffer).cleaner().clean();
 		
 		4.JNI(java native interface)
-			JNI����ʹ�ñ��ش���(��C)��java����֮������໥���á�ͬʱjvm��������ʱҲ����JNI����ʵ����⹦�ܣ����ļ�IO,����IO������OS���õȡ�
-		�ⲿ���ڴ������native memory �У�����JNIҲ������java����ʱ��jvm�ڴ�ռ�á�
+			JNI技术使得本地代码(如C)与java方法之间可以相互调用。同时jvm本身运行时也依赖JNI代码实现类库功能，如文件IO,网络IO或其它OS调用等。
+		这部分内存分配在native memory 中，所以JNI也会增加java运行时的jvm内存占用。
 
 -------------------------------------------------------------------------------------------------------------
-JVM�ڴ�������
-	1.OS���ڴ������ԣ�
-		1.��̬�ڴ����
-			��̬�ڴ������ָ�ڱ���ʱ����ȷ��ÿ������������ʱ�Ĵ洢�ռ䣬����ڱ���ʱ�Ϳ��Ը����Ƿ���̶����ڴ�ռ䡣���ַ�����Բ������ڳ���
-		�������пɱ����ݽṹ(��ɱ�����)�Ĵ��ڣ�Ҳ��������Ƕ�׻��ߵع��Ļ������֣���Ϊ���Ƕ��ᵼ�±�������޷����㾫ȷ�Ĵ洢�ռ�����
-		2.ջ�ڴ����
-			ջ�ڴ����Ҳ���Գ�Ϊ��̬�洢���䣬����һ�������ڶ�ջ������ջ��ʵ�ֵġ��;�̬�ڴ�����෴����ջ�ڴ淽���У�������������������ڱ�
-		��ʱ����ȫδ֪��ֻ�е�����ʱ����֪�������ǹ涨�������н���һ������ģ��ʱ���ó���ģ���������������С��������֪�ģ�����Ϊ������ڴ档
-		3.���ڴ����
-			�޷��ڱ���ʱ���ڳ�����ڴ�ȷ���洢�ռ��С��ֻ���ڳ����������е���Ӧ����ʱ����֪���ռ�Ĵ�С����ʱ���Ǿ���Ҫ�����ַ������
+JVM内存分配策略
+	1.OS的内存分配策略：
+		1.静态内存分配
+			静态内存分配是指在编译时就能确定每个数据在运行时的存储空间，因此在编译时就可以给它们分配固定的内存空间。这种分配策略不允许在程序
+		代码中有可变数据结构(如可变数组)的存在，也不允许有嵌套或者地鬼的机构出现，因为它们都会导致编译程序无法计算精确的存储空间需求。
+		2.栈内存分配
+			栈内存分配也可以称为动态存储分配，是由一个类似于堆栈的运行栈来实现的。和静态内存分配相反，在栈内存方案中，程序对数据区的需求在编
+		译时是完全未知的只有到运行时才能知道，但是规定在运行中进入一个程序模块时，该程序模块所需的数据区大小必须是已知的，才能为其分配内存。
+		3.堆内存分配
+			无法在编译时和在程序入口处确定存储空间大小，只能在程序真正运行到相应代码时才能知道空间的大小，这时我们就需要堆这种分配策略
 		
-			���ϼ����ڴ��������У������Զѷ�������������ɵģ��������ַ�����Զ�OS���ڴ����������˵��һ����ս�����⣬�����̬���ڴ������
-		�ڳ�������ʱ��ִ�еģ���������Ч��Ҳ�ǱȽϲ�ġ�
+			以上几种内存分配策略中，很明显堆分配策略是最自由的，但是这种分配策略对OS和内存管理程序来说是一种挑战。另外，这个动态的内存分配是
+		在程序运行时才执行的，它的运行效率也是比较差的。
 	
-	2.java�е��ڴ������⣺
-		java��û��ʲô�﷨�Ǻ��ڴ���ֱ����ϵ�ģ�������C/C++����malloc�����﷨ֱ�Ӳ����ڴ档
-		JVM���ڴ������Ҫ�������֣��ֱ��ǶѺ�ջ�����⻹�б���ʱ�ľ�̬�ڴ���䡣
-		1.ջ��
-			javaջ�ķ����Ǻ��̰߳���һ��ģ������Ǵ���һ���߳�ʱ��jvm��Ϊ����̴߳���һ���µ�javaջ��һ���̵߳ķ����ĵ��úͷ��ض�Ӧ�����javaջ
-		��ѹջ�ͳ�ջ�����̼߳���һ��java����ʱ��JVM�ͻ����̵߳�javaջ��ѹ��һ��֡�����֡��Ȼ���˵�ǰ֡���ڴ˷���ִ���ڼ䣬���֡����������
-		�������ֲ��������м������̺��������ݡ�
-			ջ����Ҫ���һЩ�������͵ı�������(int,short��java�������ͱ���)�Ͷ�����(����)��
-			ջ�Ĵ�ȡ�ٶȱȶѿ죬�����ڼĴ�����ջ����Ҳ���Թ�����
-		2.�ѣ�
-			ÿ��javaӦ�ö�Ψһ��Ӧһ��JVMʵ����ÿ��ʵ��Ψһ��Ӧһ���ѡ�Ӧ�ó�������������������������ʵ�������鶼����������У�����Ӧ�ó�������
-		���̹߳�������java�з�����ڴ����Զ���ʼ���ģ����ж���Ĵ洢�ռ䶼���ڶ��з���ģ�����������������ȴ����ջ�з���ġ�Ҳ����˵�ڽ���һ
-		������ʱ�������ط��������ڴ棬�ڶ��з�����ڴ�ʵ�ʽ���������󣬶���ջ�з�����ڴ�ֻ��һ��ָ������Ѷ�������ö��ѡ�
-			java�Ķ���һ������ʱ����������Щ����ͨ��newָ���������֮��Ķ�����Ҫ�����������ʽ�ͷš�������GC������ģ��ѵ������ǿ��Զ�̬��
-		�����ڴ��С��������Ҳ�������ȸ��߱���������Ϊ����������ʱ��̬�����ڴ�ģ�java�������ռ������Զ�������Щ����ʹ�õ����ݡ�
-			java�ѵ�ȱ��������Ҫ������ʱ�����ڴ棬��ȡ�ٶȽ�����
+	2.java中的内存分配详解：
+		java中没有什么语法是和内存有直接联系的，不像在C/C++中有malloc这种语法直接操作内存。
+		JVM的内存分配主要基于两种，分别是堆和栈。此外还有编译时的静态内存分配。
+		1.栈：
+			java栈的分配是和线程绑在一起的，当我们创建一个线程时，jvm会为这个线程创建一个新的java栈，一个线程的方法的调用和返回对应于这个java栈
+		的压栈和出栈。当线程激活一个java方法时，JVM就会在线程的java栈中压入一个帧，这个帧自然成了当前帧。在此方法执行期间，这个帧将用来保存
+		参数、局部变量、中间计算过程和其它数据。
+			栈中主要存放一些基本类型的变量数据(int,short等java基本类型变量)和对象句柄(引用)。
+			栈的存取速度比堆快，仅次于寄存器，栈数据也可以共享。
+		2.堆：
+			每个java应用都唯一对应一个JVM实例，每个实例唯一对应一个堆。应用程序在运行中所创建的所有类实例或数组都放在这个堆中，并由应用程序所有
+		的线程共享。在java中分配堆内存是自动初始化的，所有对象的存储空间都是在堆中分配的，但是这个对象的引用却是在栈中分配的。也就是说在建立一
+		个对象时在两个地方都分配内存，在堆中分配的内存实际建立这个对象，而在栈中分配的内存只是一个指向这个堆对象的引用而已。
+			java的堆是一个运行时数据区，这些对象通过new指令建立。建立之后的对象不需要程序代码来显式释放。堆是由GC来负责的，堆的优势是可以动态地
+		分配内存大小，生存期也不必事先告诉编译器，因为它是在运行时动态分配内存的，java的垃圾收集器会自动收走这些不再使用的数据。
+			java堆的缺点是由于要在运行时分配内存，存取速度较慢。
 			
-		�Ƚϣ�
-			�ӶѺ�ջ�Ĺ��ܼ���������ͨ�ױȽϣ�����Ҫ��������Ŷ���ģ���ջ��Ҫ����ִ�г���
-			�ڱ���У���C/C++�����еķ������ö���ͨ��ջ�����еģ����еľֲ��������βεȶ��Ǵ�ջ�з����ڴ�ռ�ġ�ʵ����Ҳ����ʲô���䣬ֻ�Ǵ�
-		ջ�������þ��У�ջָ����Զ�ָ���㵽�Ŷ�����λ�ã�����Ҫ���ľ��ǰѶ������������С����˳�����ʱ���޸�ջָ��Ϳ��԰�ջ�е��������١�����
-		�ķ�ʽ�ٶ���죬��ȻҪ�������г����ˡ���Ҫע����ǣ��ڷ���ʱ����Ϊһ������Ҫ���õĳ���ģ�����������ʱ��Ӧ����֪������������Ĵ�С��Ҳ
-		����˵�������ڳ�������ʱ���еģ����Ƿ���Ĵ�С��ȷ���ġ�����ģ������"��С����"���ڱ���ʱȷ���ģ�������������ʱ��
-			����Ӧ�ó�������ʱ����OS���Լ������ڴ棬����OS�����ڴ���䣬�����ڷ��������ʱ��Ҫռ��ʱ�䣬����öѵ�Ч�ʷǳ��͡����Ƕѵ��ŵ�����
-		����������֪��Ҫ�Ӷ��������ٴ洢�ռ䣬Ҳ����֪���洢������Ҫ�ڶ���ͣ���೤ʱ�䣬����öѱ�������ʱ��õ����������ԡ���ʵ�ϣ�������
-		�����Ķ�̬�ԣ����ڴ�����Ǳز����ٵģ���Ϊ��̬��������Ĵ洢�ռ�ֻ��������ʱ�����˶���֮�����ȷ������C++�У�Ҫ�󴴽�һ������ʱ��ֻ
-		��Ҫ��new���������صĴ��뼴�ɡ�ִ����Щ����ʱ�����ڶ����Զ��������ݵı��档
+		比较：
+			从堆和栈的功能即作用上来通俗比较，堆主要是用来存放对象的，而栈主要用于执行程序。
+			在编程中，如C/C++，所有的方法调用都是通过栈来进行的，所有的局部变量，形参等都是从栈中分配内存空间的。实际上也不是什么分配，只是从
+		栈顶向上用就行，栈指针会自动指引你到放东西的位置，你所要做的就是把东西放下来就行。在退出函数时，修改栈指针就可以把栈中的内容销毁。这样
+		的方式速度最快，当然要用来运行程序了。需要注意的是，在分配时，如为一个即将要调用的程序模块分配数据区时，应事先知道这个数据区的大小，也
+		就是说分配是在程序运行时进行的，但是分配的大小是确定的、不变的，而这个"大小多少"是在编译时确定的，而不是在运行时。
+			堆在应用程序运行时请求OS给自己分配内存，由于OS管理内存分配，所以在分配和销毁时都要占用时间，因此用堆的效率非常低。但是堆的优点在于
+		编译器不必知道要从堆里分配多少存储空间，也不必知道存储的数据要在堆里停留多长时间，因此用堆保存数据时会得到更大的灵活性。事实上，由于面
+		向对象的多态性，堆内存分配是必不可少的，因为多态变量所需的存储空间只有在运行时创建了对象之后才能确定。在C++中，要求创建一个对象时，只
+		需要用new命令编制相关的代码即可。执行这些代码时，会在堆中自动进行数据的保存。
 
-		3.��̬�ڴ���䣺
-			java���Ǹ��ľ�̬�ڴ������ָ��java������ʱ���Ѿ��ܹ�ȷ����Ҫ���ڴ�ռ䣬�����򱻼���ʱϵͳ���ڴ�һ���Է����������Щ�ڴ治���ڳ���
-		ִ��ʱ�����仯��֪������֮�н���ʱ�ڴ�ű����ա�java����ͷ����еľֲ�����(����ԭ���������ͺͶ��������)���Ǿ�̬������ڴ档
+		3.静态内存分配：
+			java中那个的静态内存分配是指在java被编译时就已经能够确定需要的内存空间，当程序被加载时系统把内存一次性分配给它，这些内存不会在程序
+		执行时发生变化，知道程序之行结束时内存才被回收。java的类和方法中的局部变量(包括原生数据类型和对象的引用)都是静态分配的内存。
 
 	3.GC:
-		GC�����ܹ�����������飺һ�����ܹ���ȷ�ؼ�������������һ�����ܹ��ͷ���������ռ�õ��ڴ�ռ䡣������μ���������GC�Ĺؼ����ڡ�
-		ֻҪ��ĳ�������ٱ�������������ã���ô�������Ϳ��Ա������ˡ�����Ļ����ָ����һ�������󼯺��ܹ��ﵽ�Ķ���
+		GC必须能够完成两件事情：一件是能够正确地检测出垃圾对象，另一件是能够释放垃圾对象占用的内存空间。其中如何检测出垃圾是GC的关键所在。
+		只要是某个对象不再被其它活动对象引用，那么这个对象就可以被回收了。这里的活动对象指的是一个跟对象集合能够达到的对象。
 
 
 -------------------------------------------------------------------------------------------------------------
-Servlet����ԭ��������
-	Java web�����ǵ�ǰ�����Ļ�����webӦ�ü���֮һ����Servlet��Java web�����ĺ��Ļ�����
-	1.Servlet������
-		Servlet��Servlet�����Ĺ�ϵ�е��������ӵ��Ĺ�ϵ��ǹ��Ϊ�ӵ������ģ����ӵ�����ǹ����ɱ��������Ȼ���Ǳ˴����棬�������໥������չ����һ��
-	����Ϊ����Ӧ��ҵ���������Ӽ����Ƕ���˵��Ϊ�˽��ͨ����׼���ӿ����໥Э����
-		Servlet������Ϊһ��������չ�ı�׼����Ʒ��Ŀǰ����ܶ࣬�������Ƕ��и��Ե��г���λ�������ص㣬����˵˭��˭�ӡ�
-		Ŀǰ������Servlet�������£�
-			Tomcat:Apache֧�ֵĿ�Դ��java webӦ�÷�����
-			Jboss:������Servlet���������һ���һ��EJB����
-			Weblogic:���õ�Servlet������ͬ������������Ҫ��tomcat����
+Servlet工作原理解析：
+	Java web技术是当前主流的互联网web应用技术之一，而Servlet是Java web技术的核心基础。
+	1.Servlet容器：
+		Servlet与Servlet容器的关系有点像抢和子弹的关系，枪是为子弹而生的，而子弹又让枪有了杀伤力。虽然它们彼此依存，但是又相互独立发展，这一切
+	都是为了适应工业化生产。从技术角度来说是为了解耦，通过标准化接口来相互协作。
+		Servlet容器作为一个独立发展的标准化产品，目前种类很多，但是它们都有各自的市场定位，各有特点，很难说谁优谁劣。
+		目前主流的Servlet容器如下：
+			Tomcat:Apache支持的开源的java web应用服务器
+			Jboss:不但是Servlet容器，而且还是一个EJB容器
+			Weblogic:商用的Servlet容器，同等条件下性能要比tomcat优秀
 		
-	2.Tomcat���⣺
+	2.Tomcat讲解：
 	deploy path:wtpwebapps
-		Tomcat7��ʼ֧��Ƕ��ʽ���ܣ�������һ��������org.apache.catalina.startup.Tomcat�����ڴ���һ��ʵ�����󲢵���start�����Ϳ��Ժ����׵�����
-	Tomcat��ͨ���ö������Ӻ��޸�Tomcat�����ò���������Զ�̬����Context��Servlet�ȡ�
-		tomcat����ģ�ͷ�Ϊ4���ȼ�����������Servlet��������Context������һ��Context������һ��Web����һһ��Ӧ��
-		Tomcat�������߼��ǻ��ڹ۲���ģʽ��Ƶģ����е���������̳�Lifecycle�ӿڣ��������������������ڣ������������޸ĺ�״̬�ĸı䶼������ȥ
-	֪ͨ�Ѿ�ע��Ĺ۲���(Listener)
+		Tomcat7开始支持嵌入式功能，增加了一个启动类org.apache.catalina.startup.Tomcat。用于创建一个实例对象并调用start方法就可以很容易地启动
+	Tomcat。通过该对象增加和修改Tomcat的配置参数，如可以动态增加Context、Servlet等。
+		tomcat容器模型分为4个等级，真正管理Servlet的容器是Context容器，一个Context容器和一个Web工程一一对应。
+		Tomcat的启动逻辑是基于观察者模式设计的，所有的容器都会继承Lifecycle接口，它管理着整个声明周期，所有容器的修改和状态的改变都会由它去
+	通知已经注册的观察者(Listener)
 
 -------------------------------------------------------------------------------------------------------------
 Session
-		Cookie�����÷���˳������ÿ���ͻ��˵ķ��ʣ���ÿ�οͻ��˵ķ��ʱ��봫����ЩCookie�����Cookie�ܶ࣬�����������˿ͻ��������˵�����
-	����������Session�ĳ�������Ϊ�˽��������⡣
-		ͬһ���ͻ���ÿ�κͷ���������ʱ������Ҫÿ�ζ��������е�Cookieֵ������ֻҪ����һ��Id�����Id�ǿͻ��˵�һ�η��ʷ�����ʱ���ɵģ�����ÿ
-	���ͻ�����Ψһ�ġ�����ÿ���ͻ��˾�����һ��Ψһ��Id���ͻ���ֻҪ�������Id�����ˣ����Idͨ����Name��JSESSIONID��һ��Cookie��
-		����SessionId������˾Ϳ��Դ���HttpSession�����ˣ���һ�δ���ͨ��request.getSession()�����������ǰ��SessionId��û�ж�Ӧ��HttpSession
-	������ô�ʹ���һ���µģ������������ӵ�org.apache.catalina.Manager��session�����б��档Manager����������Session���������ڣ�Session
-	���ڽ������գ��������رգ�Session�������л������̵ȡ�ֻҪ���HttpSession������ڣ��û��Ϳ��Ը���SessionId����ȡ�������Ҳ�������˶�
-	״̬�ı��֡�
-		Tomcat�е�session�����ʵ������org.apache.catalina.session.StandardManager��requestSessionId()������StandardManager��session������ȡ��StandardSession
-	����һ��requestSessionId��Ӧһ�����ʵĿͻ��ˣ�ͬʱ��Ӧһ��StandardSession��������������ڱ������Ǵ�����Sessionֵ��
-		StandardManager�ฺ��Servlet���������е�StandardSession������������ڹ�����Ĭ������£���Servlet����������ر�ʱ��StandardManager����־û�û�й���
-	��StandardSession���󣬽���־û���һ����SESSIONS.serΪ�ļ������ļ��С���Servlet��������ʱ����ʼ��StandardManger����ʱ�������¶�ȡ����ļ�������������
-	Session�������±��浽StandardManager��sessions�����С�
-		request.getSession()�������õ�StandardSession��Զ������ڣ���ʹ������ͻ��˹�����Session�����Ѿ����ڡ�������ڣ����ֻ����´���һ��ȫ�µ�StandardSession
-	���󣬵�֮ǰ�����õ�Sessionֵ���ᶪʧ�������ȡ����Session���󣬵���ͨ��session��getAttributeȡ����ǰ�����õ�Sessionֵ���벻Ҫ��֣���Ϊ�ܿ������Ѿ�ʧЧ��
-		Session��Cookie��������ȱ�㣬�ڴ��ͻ�����ϵͳ�У�����ʹ��Cookie��Session���ǲ����еġ�ԭ��ܼ򵥣�ʹ��Cookie���Ժܺõؽ��Ӧ�õķֲ�ʽ�������⣬����
-	������Ӧ��ϵͳ��һ��Ӧ�����ϰ�̨�����������кܶ಻ͬ��Ӧ��ϵͳЭͬ����������Cookie�ǽ�ֵ�洢�ڿͻ��˵�������У��û�ÿ�η��ʶ��Ὣ���µ�ֵ���ط�����������
-	���Խ����ͬһ���û���������ܲ���ͳһ̨���������������µ�Cookie��һ�µ����⡣
-		����֮�⣬�ÿ��(��ͼ)���ܴ���Cookie����ȡ���⡣����������û�ж�ʧ����������ʺ�ȴ�п��ܱ����˵�¼���������������ܿ�������Ϊ���¼�ɹ������
-	Cookie�����˵�ȡ�ˣ���ʱһ���ǳ����ص����⡣�������������ǿ�������һ��Sessionǩ�������û���¼�ɹ������Ǹ����û���˽����Ϣ����һ��ǰ�棬�Ա�ʾ��ǰ���
-	Ψһ�ĺϷ���¼״̬��Ȼ�����ǩ����Ϊһ��Cookie�ڵ�ǰ����û�������������кͷ��������ݣ��û�ÿ�η��ʷ��������������ǩ���ʹӷ������ֲ�ʽ������ȡ�õ�
-	Session�������ɵ�ǩ���Ƿ�һ�£������һ�£�����Ȼ����û��ĵ�¼״̬���Ϸ�����������������SessionId�ڷֲ�ʽ�����е�Session��Ϣ�����û����µ�¼
+		Cookie可以让服务端程序更总每个客户端的访问，但每次客户端的访问必须传回这些Cookie，如果Cookie很多，则无形增加了客户端与服务端的数据
+	传输量，而Session的出现正是为了解决这个问题。
+		同一个客户端每次和服务器交互时，不需要每次都传回所有的Cookie值，而是只要传回一个Id，这个Id是客户端第一次访问服务器时生成的，而且每
+	个客户端是唯一的。这样每个客户端就有了一个唯一的Id，客户端只要传回这个Id就行了，这个Id通常是Name的JSESSIONID的一个Cookie。
+		有了SessionId，服务端就可以创建HttpSession对象了，第一次触发通过request.getSession()方法。如果当前的SessionId还没有对应的HttpSession
+	对象，那么就创建一个新的，并将这个对象加到org.apache.catalina.Manager的session容器中保存。Manager类会管理所有Session的声明周期，Session
+	过期将被回收，服务器关闭，Session将被序列化到磁盘等。只要这个HttpSession对象存在，用户就可以根据SessionId来获取这个对象，也就做到了对
+	状态的保持。
+		Tomcat中的session对象的实现类是org.apache.catalina.session.StandardManager。requestSessionId()方法从StandardManager的session集合中取出StandardSession
+	对象。一个requestSessionId对应一个访问的客户端，同时对应一个StandardSession对象，这个对象用于保存我们创建的Session值。
+		StandardManager类负责Servlet容器中所有的StandardSession对象的声明周期管理。默认情况下，当Servlet容器重启或关闭时，StandardManager负责持久化没有过期
+	的StandardSession对象，将其持久化到一个以SESSIONS.ser为文件名的文件中。当Servlet容器重启时，初始化StandardManger对象时，会重新读取这个文件，解析出所有
+	Session对象，重新保存到StandardManager的sessions集合中。
+		request.getSession()方法调用的StandardSession永远都会存在，即使与这个客户端关联的Session对象已经过期。如果过期，则又会重新创建一个全新的StandardSession
+	对象，但之前已设置的Session值将会丢失。如果你取到了Session对象，但是通过session。getAttribute取不到前面设置的Session值，请不要奇怪，因为很可能它已经失效了
+		Session和Cookie各自有优缺点，在大型互联网系统中，单独使用Cookie或Session都是不可行的。原因很简单：使用Cookie可以很好地解决应用的分布式部署问题，大型
+	互联网应用系统的一个应用有上百台机器，并且有很多不同的应用系统协同工作，由于Cookie是将值存储在客户端的浏览器中，用户每次访问都会将最新的值带回服务器处理，
+	所以解决了同一个用户的请求可能不再统一台服务器处理而导致的Cookie不一致的问题。
+		除此之外，该框架(见图)还能处理Cookie被盗取问题。如果你的密码没有丢失。但是你的帐号却有可能被别人登录的情况，这种情况很可能是因为你登录成功后，你的
+	Cookie被别人盗取了，这时一个非常严重的问题。在这个框架中我们可以设置一个Session签名，当用户登录成功后我们根据用户的私密信息生成一个前面，以表示当前这个
+	唯一的合法登录状态，然后将这个签名作为一个Cookie在当前这个用户的浏览器进程中和服务器传递，用户每次访问服务器都会检查这个签名和从服务器分布式缓存中取得的
+	Session重新生成的签名是否一致，如果不一致，则显然这个用户的登录状态不合法，服务器再清楚这个SessionId在分布式缓存中的Session信息，让用户重新登录
 	
-		����Cookie�Ĺ淶����Cookie�в��ܰ��������ַ������ܰ���ASCII����Ϊ34~126�Ŀɼ��ַ���
+		根据Cookie的规范，在Cookie中不能包含控制字符，仅能包含ASCII码中为34~126的可见字符。
 		
 -------------------------------------------------------------------------------------------------------------
 Jetty
-	1.jetty�����ܹ���
-		����jetty�ĺ�����Server��Connection����������ɣ�Server����jetty����ڣ�Server����������ˣ��ʹ���jetty�����ṩ�����ˡ�����Server����ǻ���Handler����
-	�����ģ���������Conntainer������jetty����һ���ز����ٵ������Connector����������ܿͻ��˵��������󣬲�����������һ����������ȥִ�С�
-	���⻹��һЩ���п��޵������������������������չ��(��JMX,���ǿ��Զ���һЩMBean�����ӵ�Server)�У���Server����ʱ����ЩBean��һ������
-		jetty��Server����չ��Ҫ��ʵ����һ����Handler����Handler�ӵ�Server�У���Server���ṩ�˵�����ЩHandler�ķ��ʹ���
-		Server�������������˳���ǣ������������õ�Server��Handler��ͨ�����Handler���кܶ���Handler����ЩHandler�����һ��Handler����Server�����������������
-	������Handler;���Ż�����ע�ᵽServer�ϵ�JMX��Mbean����MbeanҲһ����;��������Connector���򿪶˿ڣ����ܿͻ������������߼���tomcat�򵥶�����
+	1.jetty基本架构：
+		整个jetty的核心由Server和Connection两个组件构成，Server类是jetty的入口，Server类启动完成了，就代表jetty可以提供服务了。整个Server组件是基于Handler容器
+	工作的，它类似于Conntainer容器。jetty中另一个必不可少的组件是Connector，它负责接受客户端的连接请求，并将请求分配给一个处理队列去执行。
+	此外还有一些可有可无的组件，可以在它们上面做扩展，(如JMX,我们可以定义一些MBean把它加到Server)中，当Server启动时，这些Bean会一起工作。
+		jetty对Server的扩展主要是实现了一个个Handler并将Handler加到Server中，在Server中提供了调用这些Handler的访问规则
+		Server启动其它组件的顺序是：首先启动设置到Server的Handler，通常这个Handler会有很多子Handler，这些Handler将组成一个Handler链，Server会依次启动这个链上
+	的所有Handler;接着会启动注册到Server上的JMX的Mbean，让Mbean也一起工作;最后会启动Connector，打开端口，接受客户端请求。启动逻辑较tomcat简单而清晰
 		
-	2.Handler����ϵ�ṹ:
-		jetty��Ҫ����Handler����Ƶģ�Handler����ϵ�ṹӰ��������Jetty�ķ�������
-		��Ҫ��2��Handler���͡�һ����HandlerWrapper��һ����HandlerCollection
-		HandlerWrapper�������Խ�һ��Handlerί�и�����һ����ȥִ�У�������Ҫ��һ��Handler�ӵ�jetty�У���ô���뽫���Handlerί�и�Serverȥ���á����ScopeHandler
-	�����ǿ�������Handler��ִ�У��ڵ���Handler����֮ǰ��֮�����������һЩ���顣
-		HandlerCollection�����Handler����Խ����Handler��װ��һ�𣬹���һ��Handler����������������չ��
-	3.����AJP������
-		ͨ��һ��Web����վ��ĺ�˷��������ǽ�java��Ӧ�÷�����ֱ�ӱ�¶����������ߣ�������Ӧ�÷�����ǰ���ټ�һ��web������(��Apache����Nginx),���������ؾ��⡢
-	��־������Ȩ�޿��ơ���ȫ���ơ���̬��ԴԤ���صȡ�
-		������ΪAJPģʽ��������AJP�ܹ��£�Servlet����Ͳ�����Ҫ�����ͷ�װHTTP����֡�ˣ���ΪHTTP�Ľ��������Ѿ���Apache����Nginx������������ˣ�JBossֻҪ����
-	���Ӽ򵥵�AJP�����Ϳ����ˣ������ܼӿ��������Ӧ�ٶȡ�
-		�Ա�Http��ʱ��ͼ���Է��֣����ǵ��߼���������ͬ�ģ���ͬ�����滻��һ���࣬��Ajp13Parserer�滻��HttpParser��ʵ����AJP�������������HTTPΨһ�Ĳ�ͬ������
-	��ȡ��Socket���ݰ�ʱ�����ת��������ݰ�������Http�İ���ʽ����������HttpParser;����AJP����������Ajp13Parserer����װ���ص�����Ҳ����ˡ�
-		��Jetty������AJP�£���Ҫ����Connector��ʵ����ΪAjp13SocketConnector�������̳���SocketConnecor�ࡣ
+	2.Handler的体系结构:
+		jetty主要基于Handler来设计的，Handler的体系结构影响着整个Jetty的方方面面
+		主要有2钟Handler类型。一种是HandlerWrapper，一种是HandlerCollection
+		HandlerWrapper：它可以将一个Handler委托给另外一个类去执行，如我们要将一个Handler加到jetty中，那么必须将这个Handler委托给Server去调用。配合ScopeHandler
+	类我们可以拦截Handler的执行，在调用Handler类型之前或之后可以做另外一些事情。
+		HandlerCollection：这个Handler类可以将多个Handler组装在一起，构成一个Handler链，方便我们做扩展。
+	3.基于AJP工作：
+		通常一个Web服务站点的后端服务器不是将java的应用服务器直接暴露给服务访问者，而是在应用服务器前面再加一个web服务器(如Apache或者Nginx),用以做负载均衡、
+	日志分析、权限控制、安全控制、静态资源预加载等。
+		若更改为AJP模式，在这种AJP架构下，Servlet引擎就不再需要解析和封装HTTP数据帧了，因为HTTP的解析工作已经在Apache或者Nginx服务器上完成了，JBoss只要基于
+	更加简单的AJP工作就可以了，这样能加快请求的响应速度。
+		对比Http的时序图可以发现，它们的逻辑几乎是相同的，不同的是替换了一个类，即Ajp13Parserer替换了HttpParser。实际上AJP处理请求相比于HTTP唯一的不同就是在
+	读取到Socket数据包时如何来转换这个数据包，按照Http的包格式来解析就算HttpParser;按照AJP来解析就算Ajp13Parserer，封装返回的数据也是如此。
+		让Jetty工作在AJP下，需要配置Connector的实现类为Ajp13SocketConnector，这个类继承了SocketConnecor类。
 		
-		����������ҵ��Ӧ���У�jetty��Ϊһ��Servlet���涼�ǻ���AJP�����ģ�������ǰ���Ȼ��һ������������ͨ���������JBoss���ɵĿ����Էǳ���
-	4.����NIO������
-		jettyĬ�ϵ�Connector���Ӿ�����NIO��ʽ������tomcatĬ��ʹ��BIO(Block IO)
-		jetty��NIO������ʽ��Tomcat�ļ���һ����Ψһ��ͬ�ĵط�����ΰѼ��������¼��������Ӧ�����Ӵ������Ӳ���Ч��������jetty��NIO������ʽ���Ӹ�Ч
+		在正常的企业级应用中，jetty作为一个Servlet引擎都是基于AJP工作的，所以它前面必然有一个服务器，在通常情况下与JBoss集成的可能性非常大
+	4.基于NIO工作：
+		jetty默认的Connector连接就是以NIO方式创建。tomcat默认使用BIO(Block IO)
+		jetty的NIO处理方式和Tomcat的几乎一样，唯一不同的地方是如何把监听到的事件分配给对应的连接处理。从测试效果来看，jetty的NIO处理方式更加高效
 /*
 * AJP(Apache JServ Protocol)
-* 	 AJP��һ�׶����Э�飬���ڽ�����web�����������󴫵ݵ���������ҵ���Ӧ�÷�����(ͨ����Servlet����)��
-* Ϊ�˱��⸺�ؾ�������web������֮��Ƶ������Socket���ӵĿ�����Apacheָ����һ�׹淶��AJPЭ�飬��Э����2�����飬
-* 1.�������ܿ��ǣ���ԭASCII�Ĵ���ת���ɶ����ƵĴ��䣬�������紫������
-* 2.��web����֮�䱣�����ӡ�Ҳ����˵һ���������ˣ�û�����������Ͽ�
+* 	 AJP是一套定向包协议，用于将传入web服务器的请求传递到处理具体业务的应用服务器(通常是Servlet容器)。
+* 为了避免负载均衡器和web服务器之间频繁创建Socket连接的开销，Apache指定了一套规范的AJP协议，该协议做2件事情，
+* 1.出于性能考虑，把原ASCII的传输转换成二进制的传输，减少网络传输量。
+* 2.与web容器之间保持连接。也就是说一旦连接上了，没特殊情况不会断开
 */
 
 -------------------------------------------------------------------------------------------------------------
 Spring
-	1.spring�ܹ�������
-		spring�����һ���ǳ��ؼ������⣬����������Ѷ���֮���������ϵת���������ļ��ķ�ʽ��������Ҳ������������ע����ơ��������ע���ϵ��һ����Ioc��������
-	�������������������ľ��㱻Bean�����Ķ���spring����ͨ���Ѷ����װ��Bean�дӶ��ﵽ������Щ�����Լ���һЩ���������Ŀ�ĵġ����ֲ�����ȫ������javaʵ��OOP��
-	��������Ȼjava���������Ҫ��spring����̫��̫�࣬�������Ƕ��ǹ���һ�����ݽṹ��Ȼ�����������ݽṹ����������滷��������������������а���һ���Ĺ���
-	��ͣ���˶��������ǵĲ�ͣ�˶������һ��ϵ���뻷���������������������Ϣ�������������������õ���������ܴ�Ŷ������Ƶ�������
-		spring����еĺ������ֻ��3����Core��Context��Bean�����ǹ�����������spring�Ĺ����ܹ���û�����ǾͲ�������AOP��web���ϲ�����Թ��ܡ�
-		��spring��������������У�Bean�����spring�����������ǣ�������spring��ܵ����Ŀ���������ģ���Ϊspring����Ҫ˼���������Bean�ı��(BOP 
-	Bean Oriented Programming)��Bean��spring�е����þ���Object��OOP������һ����û�ж���ĸ������û���������ı�̣���spring��û��BeanҲ��û��
-	spring���ڵ����塣
-		����֪��Bean��װ����Object����Object��Ȼ�����ݣ���θ���Щ�����ṩ���滷������ContextҪ��������⡣��Context��˵����Ҫ����ÿ��Bean֮��Ĺ�ϵ��Ϊ����
-	�������ֹ�ϵ����ά�������ֹ�ϵ������Context����һ��Bean��ϵ�ļ��ϣ������ϵ�����ֽ�Ioc��������Ioc��������֮��spring�Ϳ���Ϊ�㹤���ˡ���Core������Ƿ��֡�
-	������ά��ÿ��Bean֮��Ĺ�ϵ����Ҫ��һϵ�й��ߣ�������Ƕ���������Core�������Util�������������⡣���ǿ��԰�Bean����һ���ݳ��е���Ա��Context�����ⳡ�ݳ�
-	����̨��������Core�����ݳ��ĵ����ˡ�ֻ��������һ����ܾ߱���һ����Ϸ���������������
+	1.spring架构基础：
+		spring解决了一个非常关键的问题，它可以让你把对象之间的依赖关系转而用配置文件的方式来管理，也就是它的依赖注入机制。这个依赖注入关系在一个叫Ioc的容器中
+	管理，容器中所管理的就算被Bean包裹的对象。spring正是通过把对象包装在Bean中从而达到管理这些对象以及做一些额外操作的目的的。这种策略完全类似于java实现OOP的
+	设计理念，当然java本身的设计要比spring复杂太多太多，但是它们都是构建一个数据结构，然后根据这个数据结构设计它的生存环境，并让它在这个环境中按照一定的规律
+	不停地运动，在它们的不停运动中设计一个系列与环境或者与其它个体完成信息交换。这样想来我们用到的其它框架大概都是类似的设计理念。
+		spring框架中的核心组件只有3个：Core、Context、Bean，它们构建起了整个spring的骨骼架构，没有它们就不可能有AOP，web等上层的特性功能。
+		在spring的三个核心组件中，Bean组件是spring中真正的主角，这是由spring框架的设计目标所决定的，因为spring的主要思想就是面向Bean的编程(BOP 
+	Bean Oriented Programming)。Bean在spring中的作用就像Object对OOP的意义一样，没有对象的概念就像没有面向对象的编程，在spring中没有Bean也就没有
+	spring存在的意义。
+		我们知道Bean包装的是Object，而Object必然有数据，如何给这些数据提供生存环境就是Context要解决的问题。对Context来说就是要发现每个Bean之间的关系，为它们
+	建立这种关系并且维护好这种关系。所以Context就是一个Bean关系的集合，这个关系集合又叫Ioc容器，当Ioc容器建立之后，spring就可以为你工作了。而Core组件就是发现、
+	建立和维护每个Bean之间的关系所需要的一系列工具，从这个角度来看，把Core组件叫做Util或许更容易理解。我们可以把Bean比作一场演出中的演员，Context就算这场演出
+	的舞台背景，而Core就是演出的道具了。只有它们在一起才能具备演一场好戏的最基本的条件。
 	
-	2.spring��AOP������⣺
+	2.spring的AOP特性详解：
 		
 		
 		
