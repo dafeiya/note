@@ -35,6 +35,7 @@ ${basedir}：项目的根目录。
 
 ${project.build.directory}：项目根目录下的target目录。即：${basedir}/tartget
 
+${project.build.finalName}：项目最后打包时的名字
 --------------------------------------------------------------
 
 scope标签
