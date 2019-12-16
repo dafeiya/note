@@ -172,6 +172,14 @@ EOL
 aptitude		自动解决依赖
 sudo aptitude install r-base-core
 
+右键在当前文件下打开终端
+sudo apt-get install nautilus-open-terminal
+-------------------------mysql--------------------------------
+mysql语法提示工具：
+ sudo apt-get install mycli
+ mycli -u root -h localhost 
+
+
 ---------------------------tmux-------------------------
 tmux系统操作:
 	Ctrl+空格		活控制台；此时以下按键生效
