@@ -382,6 +382,17 @@ Maven的依赖仲裁原则：
 		传递依赖冲突时，可以在不需要的jar的传递依赖中声明排除，从而解决冲突。
 	第四原则：版本锁定原则（最常使用）。
 		在配置文件pom.xml中先声明要使用哪个版本的相应jar包，声明后其他版本的jar包一律不依赖。解决了依赖冲突。
+
+------------------------------------------------
+循环依赖问题： 
+如tomcat启动时的一类jar包循环依赖问题
+IllegalStateException: 
+Unable to complete the scan for annotations for web application [/caservice] due to a StackOverflowError. Possible root causes include a too low setting for -Xss and illegal cyclic inheritance dependencies. The class hierarchy being processed was [org.bouncycastle.asn1.ASN1EncodableVector->org.bouncycastle.asn1.DEREncodableVector->org.bouncycastle.asn1.ASN1EncodableVector]
+  简单的说，在第1个jar里存在 B继承自A，在第2个jar里存在同名的A和B，但却是A继承自B。其实也能运行的，只是可能出现类加载时可能加载的不一定是你想要的那个，但tomcat做类型检查的时候把这个当成了一个环。
+   
+    
+     
+      
 		
 	
 	
