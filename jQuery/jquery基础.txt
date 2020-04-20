@@ -84,6 +84,7 @@ $('td:contains(Henry)').parent().children()
 		$('a').filter(function() {
 			return this.hostname && this.hostname != location.hostname;
 		})
+.slice(0,3)				获取前三个元素
 
 --------------------------------------------------------------------
 DOM操作:
